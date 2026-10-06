@@ -1,0 +1,16 @@
+# Claves y secretos (NASA FIRMS, Google, etc.)
+.env
+.env.*
+!.env.example
+
+# Dependencias y entornos
+node_modules/
+venv/
+.venv/
+__pycache__/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
