@@ -34,13 +34,18 @@ CREATE TABLE IF NOT EXISTS usuarios (
 CREATE TABLE IF NOT EXISTS alertas (
     id          BIGSERIAL PRIMARY KEY,
     foco_id     BIGINT REFERENCES focos_calor(id),
-    nivel       TEXT NOT NULL CHECK (nivel IN ('Bajo', 'Medio', 'Alto', 'Critico')),
+    nivel       TEXT NOT NULL CHECK (nivel IN ('BAJO', 'MEDIO', 'ALTO', 'CRITICO')),
     ndvi        DOUBLE PRECISION,
     ndwi        DOUBLE PRECISION,
     nbr         DOUBLE PRECISION,
     creada_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    notificada  BOOLEAN NOT NULL DEFAULT FALSE
+    notificada  BOOLEAN NOT NULL DEFAULT FALSE,
+    puntaje     INT,
+    reglas      TEXT[],
+    estado      TEXT NOT NULL DEFAULT 'ACTIVA',
+    en_anp      BOOLEAN
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_alertas_foco ON alertas (foco_id);
 
 CREATE TABLE IF NOT EXISTS incidentes (
     id           BIGSERIAL PRIMARY KEY,

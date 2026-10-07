@@ -44,3 +44,11 @@ Carga historica (la API limita a 5 dias por consulta; SP hasta 2026-06-30, NRT d
 docker compose run --rm app python scripts/ingest_historico.py VIIRS_SNPP_SP 2025-01-01 2026-06-30
 docker compose run --rm app python scripts/ingest_historico.py VIIRS_SNPP_NRT 2026-07-01 2026-10-07
 ```
+
+## Alertas (HU-04, HU-06)
+
+```bash
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/002_alertas.sql   # una vez, si la BD ya existia
+docker compose run --rm app python scripts/procesar_alertas.py 72   # focos de las ultimas 72 h
+```
+Calcula NDVI/NDWI por foco en Earth Engine, excluye agua, detecta Areas Naturales Protegidas (WDPA) y guarda la alerta con su nivel de riesgo.
