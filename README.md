@@ -52,3 +52,11 @@ docker compose exec -T db psql -U geofire -d geofire < db/migrations/002_alertas
 docker compose run --rm app python scripts/procesar_alertas.py 72   # focos de las ultimas 72 h
 ```
 Calcula NDVI/NDWI por foco en Earth Engine, excluye agua, detecta Areas Naturales Protegidas (WDPA) y guarda la alerta con su nivel de riesgo.
+
+## Correo de alertas (HU-06)
+
+```bash
+docker compose run --rm app python scripts/enviar_alertas.py --dry-run   # simulacro, no envia
+docker compose run --rm app python scripts/enviar_alertas.py             # envia y marca como notificadas
+```
+Requiere SMTP_USER, SMTP_PASSWORD (contrasena de aplicacion de Gmail) y ALERTA_DESTINATARIOS en `.env`.
