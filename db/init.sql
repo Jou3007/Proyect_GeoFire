@@ -28,7 +28,10 @@ CREATE TABLE IF NOT EXISTS usuarios (
     password_hash  TEXT NOT NULL,
     rol            TEXT NOT NULL CHECK (rol IN ('administrador', 'autoridad_regional', 'guardaparque')),
     intentos_fallidos INT NOT NULL DEFAULT 0,
-    bloqueado      BOOLEAN NOT NULL DEFAULT FALSE
+    bloqueado      BOOLEAN NOT NULL DEFAULT FALSE,
+    nombre         TEXT,
+    activo         BOOLEAN NOT NULL DEFAULT TRUE,
+    ultimo_acceso  TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS alertas (
