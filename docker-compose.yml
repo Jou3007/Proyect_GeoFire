@@ -41,6 +41,7 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
+      - gee_credentials:/root/.config/earthengine
 
 volumes:
   pgdata:
