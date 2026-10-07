@@ -4,5 +4,6 @@
   "frp_p50": 7.61,
   "frp_p90": 41.66,
   "distancia_comunidad_km": 10,
+  "tipos_asentamiento": ["city", "town", "village", "hamlet"],
   "vigencia_horas": 6
 }
