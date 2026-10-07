@@ -10,5 +10,5 @@ if not project:
     raise SystemExit("Falta GEE_PROJECT en .env")
 
 ee.Initialize(project=project)
-img = ee.Image("COPERNICUS/S2_SR_HARMONIZED").select("B8")
+img = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").first().select("B8")
 print("Earth Engine OK, proyecto:", project, "| banda:", img.bandNames().getInfo())
