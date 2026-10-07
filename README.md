@@ -31,3 +31,10 @@ docker compose run --rm app python scripts/test_gee.py
 docker compose run --rm app python scripts/ingest_firms.py 5   # ultimos 5 dias
 ```
 Descarga VIIRS y MODIS de NASA FIRMS para Ucayali y los guarda en `focos_calor` sin duplicados.
+
+## Indices espectrales (HU-03)
+
+```bash
+docker compose run --rm app python scripts/ndvi_zona.py sepahua 30   # zona y dias
+```
+Calcula NDVI, NDWI y NBR sobre Sentinel-2 en Earth Engine (con mascara de nubes).
