@@ -67,3 +67,11 @@ Requiere SMTP_USER, SMTP_PASSWORD (contrasena de aplicacion de Gmail) y ALERTA_D
 docker compose up -d web      # abre http://localhost:8501
 ```
 Pantallas: Centro de operaciones (KPIs), Mapa visor (focos por nivel de riesgo) e Incidentes (tabla con filtros y exportar CSV).
+
+## Login y roles (HU-09)
+
+```bash
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/003_usuarios.sql   # una vez, si la BD ya existia
+docker compose run --rm app python scripts/crear_usuario.py   # crea el primer administrador (pide la clave por teclado)
+```
+Roles: `administrador` (todo + gestion de usuarios), `autoridad_regional` y `guardaparque`. La cuenta se bloquea tras 5 intentos fallidos.
