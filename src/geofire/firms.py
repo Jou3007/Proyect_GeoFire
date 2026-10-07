@@ -16,16 +16,18 @@ FIRMS_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{source}/{b
 # TODO: reemplazar por el limite oficial (GeoJSON) cuando se tenga.
 UCAYALI_BBOX = (-75.95, -12.00, -70.45, -7.25)
 
-SOURCES = ("VIIRS_SNPP_NRT", "MODIS_NRT")
+SOURCES = ("VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "MODIS_NRT")
 
 
-def fetch_hotspots(source, days=1, bbox=UCAYALI_BBOX):
+def fetch_hotspots(source, days=1, bbox=UCAYALI_BBOX, fecha=None):
     key = os.getenv("NASA_FIRMS_MAP_KEY")
     if not key:
         raise RuntimeError("Falta NASA_FIRMS_MAP_KEY en .env")
     url = FIRMS_URL.format(
         key=key, source=source, bbox=",".join(str(c) for c in bbox), days=days
     )
+    if fecha:
+        url += f"/{fecha}"  # AAAA-MM-DD: inicio del rango (historico)
     resp = requests.get(url, timeout=60)
     if resp.status_code != 200:
         # No se imprime la URL: contiene la clave.
@@ -47,7 +49,10 @@ def save_hotspots(df, source):
                      float(r.longitude), float(r.latitude)))
     sql = (
         "INSERT INTO focos_calor (fuente, fecha_hora, frp, confianza, geom) "
-        "VALUES (%s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326)) "
+        "SELECT %s, %s, %s, %s, p.geom FROM "
+        "(SELECT ST_SetSRID(ST_MakePoint(%s, %s), 4326) AS geom) p "
+        "WHERE EXISTS (SELECT 1 FROM zonas z WHERE z.tipo = 'geocerca' "
+        "AND ST_Intersects(z.geom, p.geom)) "  # RN-01: solo dentro de Ucayali + 5 km
         "ON CONFLICT DO NOTHING"
     )
     inserted = 0
