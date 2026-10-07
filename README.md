@@ -24,3 +24,10 @@ docker compose run --rm app python scripts/test_gee.py
 ## Ramas
 - `main`: version estable
 - `develop`: integracion
+
+## Ingesta de focos de calor (HU-02)
+
+```bash
+docker compose run --rm app python scripts/ingest_firms.py 5   # ultimos 5 dias
+```
+Descarga VIIRS y MODIS de NASA FIRMS para Ucayali y los guarda en `focos_calor` sin duplicados.
