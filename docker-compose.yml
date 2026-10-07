@@ -28,6 +28,20 @@ services:
       - .:/app
       - gee_credentials:/root/.config/earthengine
 
+  web:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+    command: streamlit run app/main.py --server.port 8501 --server.address 0.0.0.0 --server.headless true --browser.gatherUsageStats false
+    ports:
+      - "8501:8501"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
 volumes:
   pgdata:
   gee_credentials:

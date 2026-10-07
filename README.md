@@ -60,3 +60,10 @@ docker compose run --rm app python scripts/enviar_alertas.py --dry-run   # simul
 docker compose run --rm app python scripts/enviar_alertas.py             # envia y marca como notificadas
 ```
 Requiere SMTP_USER, SMTP_PASSWORD (contrasena de aplicacion de Gmail) y ALERTA_DESTINATARIOS en `.env`.
+
+## Interfaz web (HU-05)
+
+```bash
+docker compose up -d web      # abre http://localhost:8501
+```
+Pantallas: Centro de operaciones (KPIs), Mapa visor (focos por nivel de riesgo) e Incidentes (tabla con filtros y exportar CSV).
