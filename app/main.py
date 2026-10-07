@@ -22,11 +22,14 @@ TODAS = {
     "centro": st.Page("views/centro.py", title="Centro de operaciones", url_path="centro", default=True),
     "mapa": st.Page("views/mapa.py", title="Mapa visor", url_path="mapa"),
     "incidentes": st.Page("views/incidentes.py", title="Incidentes", url_path="incidentes"),
+    "validacion": st.Page("views/validacion.py", title="Mis alertas", url_path="validacion"),
     "usuarios": st.Page("views/usuarios.py", title="Usuarios", url_path="usuarios"),
 }
+if usuario["rol"] == "guardaparque":  # su pantalla principal es la validacion en campo
+    TODAS["validacion"] = st.Page(
+        "views/validacion.py", title="Mis alertas", url_path="validacion", default=True
+    )
 permitidas = [TODAS[k] for k in seguridad.PERMISOS[usuario["rol"]]]
-if usuario["rol"] == "guardaparque":
-    permitidas[0] = st.Page("views/mapa.py", title="Mapa visor", url_path="mapa", default=True)
 
 ROL_TXT = {"administrador": "Administrador", "autoridad_regional": "Autoridad regional", "guardaparque": "Guardaparque"}
 with st.sidebar:
