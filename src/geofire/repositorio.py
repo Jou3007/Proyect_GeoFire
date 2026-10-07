@@ -8,7 +8,7 @@ ESTADO_ETIQUETA = {
     "ACTIVA": "Pendiente",
     "CONFIRMADA": "Confirmada",
     "FALSA_ALARMA": "Falsa alarma",
-    "REVISION_HISTORICA": "Historica",
+    "REVISION_HISTORICA": "Histórica",
 }
 
 

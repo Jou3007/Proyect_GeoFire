@@ -81,3 +81,9 @@ Roles: `administrador` (todo + gestion de usuarios), `autoridad_regional` y `gua
 Pantalla "Mis alertas" (pensada para celular): guardaparques y autoridad regional marcan cada alerta Alto/Critico
 como confirmada o falsa alarma, con comentario y foto opcional. El administrador no puede validar (RN-03).
 Las fotos se guardan en `data/fotos/` (fuera de git). El nivel de riesgo no cambia: se guarda aparte el estado.
+
+## Reportes PDF/CSV (HU-08)
+
+Pantalla "Reportes" (autoridad regional y administrador): filtra por periodo, nivel y estado y descarga PDF y CSV
+con los mismos totales. Incluye fecha de generacion, periodo, fuentes, limitaciones y el area afectada estimada
+con dNBR (opcional, usa Earth Engine). El area externa (oficial) no se incorpora; el documento lo indica.

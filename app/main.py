@@ -23,6 +23,7 @@ TODAS = {
     "mapa": st.Page("views/mapa.py", title="Mapa visor", url_path="mapa"),
     "incidentes": st.Page("views/incidentes.py", title="Incidentes", url_path="incidentes"),
     "validacion": st.Page("views/validacion.py", title="Mis alertas", url_path="validacion"),
+    "reportes": st.Page("views/reportes.py", title="Reportes", url_path="reportes"),
     "usuarios": st.Page("views/usuarios.py", title="Usuarios", url_path="usuarios"),
 }
 if usuario["rol"] == "guardaparque":  # su pantalla principal es la validacion en campo

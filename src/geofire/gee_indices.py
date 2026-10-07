@@ -40,7 +40,11 @@ def _add_indices(img):
 
 def collection(region, days=30, hasta=None):
     hasta = hasta or date.today()
-    desde = hasta - timedelta(days=days)
+    return collection_entre(region, hasta - timedelta(days=days), hasta)
+
+
+def collection_entre(region, desde, hasta):
+    """Sentinel-2 sin nubes con NDVI/NDWI/NBR entre dos fechas (ambas incluidas)."""
     return (
         ee.ImageCollection(S2)
         .filterBounds(region)
@@ -99,3 +103,48 @@ def indices_para_puntos(puntos, radio_m=500, days=30):
             "en_anp": bool(p.get("en_anp")),
         }
     return res
+
+
+UMBRAL_DNBR = 0.27  # USGS: dNBR >= 0.27 = quemado de severidad moderada-baja o mayor
+MAX_PUNTOS_AREA = 500
+
+
+def area_quemada_ha(puntos, inicio, fin, radio_m=500):
+    """Area quemada estimada con dNBR (NBR previo - NBR posterior) alrededor de los focos.
+
+    puntos: lista de (lon, lat). inicio/fin: date del periodo del reporte.
+    Previo = 30 dias antes del inicio. Posterior = desde el inicio hasta fin + 10 dias (sin pasar de hoy).
+    Se usa la union de los buffers, asi que focos cercanos no se cuentan dos veces.
+    """
+    if not puntos:
+        return {"area_ha": 0.0, "region_ha": 0.0, "imagenes_previas": 0, "imagenes_posteriores": 0}
+    puntos = puntos[:MAX_PUNTOS_AREA]
+    region = ee.Geometry.MultiPoint([[lon, lat] for lon, lat in puntos]).buffer(radio_m)
+
+    hoy = date.today()
+    post_fin = min(fin + timedelta(days=10), hoy)
+
+    def compuesto(desde, hasta):
+        col = collection_entre(region, desde, hasta)
+        return col, col.select(["NBR", "NDWI"]).median()
+
+    pre_col, pre = compuesto(inicio - timedelta(days=30), inicio - timedelta(days=1))
+    post_col, post = compuesto(inicio, post_fin)
+
+    quemado = (
+        pre.select("NBR").subtract(post.select("NBR")).gt(UMBRAL_DNBR)
+        .And(pre.select("NDWI").lt(0))  # no cuenta agua
+        .rename("q")
+    )
+    r = (
+        ee.Image.pixelArea().divide(10000).rename("ha")
+        .addBands(quemado.multiply(ee.Image.pixelArea()).divide(10000).rename("quemado_ha"))
+        .reduceRegion(ee.Reducer.sum(), region, scale=20, maxPixels=1e9)
+    )
+    out = ee.Dictionary({"r": r, "npre": pre_col.size(), "npost": post_col.size()}).getInfo()
+    return {
+        "area_ha": round(out["r"].get("quemado_ha") or 0.0, 1),
+        "region_ha": round(out["r"].get("ha") or 0.0, 1),
+        "imagenes_previas": out["npre"],
+        "imagenes_posteriores": out["npost"],
+    }

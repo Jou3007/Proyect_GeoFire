@@ -2,7 +2,7 @@
 import streamlit as st
 
 COLOR = {"CRITICO": "#d93025", "ALTO": "#f08a24", "MEDIO": "#e8b923", "BAJO": "#3f9d5b"}
-ETIQUETA = {"CRITICO": "Critico", "ALTO": "Alto", "MEDIO": "Medio", "BAJO": "Bajo"}
+ETIQUETA = {"CRITICO": "Crítico", "ALTO": "Alto", "MEDIO": "Medio", "BAJO": "Bajo"}
 
 CSS = """
 <style>

@@ -12,8 +12,8 @@ ROLES = ("administrador", "autoridad_regional", "guardaparque")
 
 # Paginas a las que accede cada rol (HU-09: "acceso denegado a paginas fuera del rol")
 PERMISOS = {
-    "administrador": ("centro", "mapa", "incidentes", "usuarios"),
-    "autoridad_regional": ("centro", "mapa", "incidentes", "validacion"),
+    "administrador": ("centro", "mapa", "incidentes", "reportes", "usuarios"),
+    "autoridad_regional": ("centro", "mapa", "incidentes", "validacion", "reportes"),
     "guardaparque": ("validacion", "mapa", "incidentes"),
 }
 
