@@ -19,13 +19,15 @@ UCAYALI_BBOX = (-75.95, -12.00, -70.45, -7.25)
 SOURCES = ("VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "MODIS_NRT")
 
 
-def fetch_hotspots(source, days=1, bbox=UCAYALI_BBOX):
+def fetch_hotspots(source, days=1, bbox=UCAYALI_BBOX, fecha=None):
     key = os.getenv("NASA_FIRMS_MAP_KEY")
     if not key:
         raise RuntimeError("Falta NASA_FIRMS_MAP_KEY en .env")
     url = FIRMS_URL.format(
         key=key, source=source, bbox=",".join(str(c) for c in bbox), days=days
     )
+    if fecha:
+        url += f"/{fecha}"  # AAAA-MM-DD: inicio del rango (historico)
     resp = requests.get(url, timeout=60)
     if resp.status_code != 200:
         # No se imprime la URL: contiene la clave.

@@ -38,3 +38,9 @@ Descarga VIIRS y MODIS de NASA FIRMS para Ucayali y los guarda en `focos_calor` 
 docker compose run --rm app python scripts/ndvi_zona.py sepahua 30   # zona y dias
 ```
 Calcula NDVI, NDWI y NBR sobre Sentinel-2 en Earth Engine (con mascara de nubes).
+
+Carga historica (la API limita a 5 dias por consulta; SP hasta 2026-06-30, NRT desde 2026-07-01):
+```bash
+docker compose run --rm app python scripts/ingest_historico.py VIIRS_SNPP_SP 2025-01-01 2026-06-30
+docker compose run --rm app python scripts/ingest_historico.py VIIRS_SNPP_NRT 2026-07-01 2026-10-07
+```
