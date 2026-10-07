@@ -13,8 +13,8 @@ ROLES = ("administrador", "autoridad_regional", "guardaparque")
 # Paginas a las que accede cada rol (HU-09: "acceso denegado a paginas fuera del rol")
 PERMISOS = {
     "administrador": ("centro", "mapa", "incidentes", "usuarios"),
-    "autoridad_regional": ("centro", "mapa", "incidentes"),
-    "guardaparque": ("mapa", "incidentes"),
+    "autoridad_regional": ("centro", "mapa", "incidentes", "validacion"),
+    "guardaparque": ("validacion", "mapa", "incidentes"),
 }
 
 MSG_CREDENCIALES = "Correo o contraseña incorrectos."

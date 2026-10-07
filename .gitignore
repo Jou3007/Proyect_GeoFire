@@ -14,3 +14,6 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+
+# Fotos de validacion en campo (datos de usuarios, no van a git)
+data/fotos/

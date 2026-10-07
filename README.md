@@ -75,3 +75,9 @@ docker compose exec -T db psql -U geofire -d geofire < db/migrations/003_usuario
 docker compose run --rm app python scripts/crear_usuario.py   # crea el primer administrador (pide la clave por teclado)
 ```
 Roles: `administrador` (todo + gestion de usuarios), `autoridad_regional` y `guardaparque`. La cuenta se bloquea tras 5 intentos fallidos.
+
+## Validacion en campo (HU-07, RN-03)
+
+Pantalla "Mis alertas" (pensada para celular): guardaparques y autoridad regional marcan cada alerta Alto/Critico
+como confirmada o falsa alarma, con comentario y foto opcional. El administrador no puede validar (RN-03).
+Las fotos se guardan en `data/fotos/` (fuera de git). El nivel de riesgo no cambia: se guarda aparte el estado.
