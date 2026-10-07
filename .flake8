@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 140
+extend-ignore = E203
+exclude = .git,__pycache__,data
+per-file-ignores =
+    app/main.py:E402
+    app/views/*.py:E402,E501
+    app/ui.py:E501

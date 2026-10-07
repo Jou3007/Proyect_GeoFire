@@ -11,7 +11,7 @@ DIA = date(2020, 1, 15)  # fecha antigua: no se mezcla con datos reales
 
 def filas_csv(contenido: bytes):
     texto = contenido.decode("utf-8-sig")
-    lineas = [l for l in texto.splitlines() if not l.startswith("#")]
+    lineas = [linea for linea in texto.splitlines() if not linea.startswith("#")]
     return list(csv.DictReader(io.StringIO("\n".join(lineas))))
 
 

@@ -64,7 +64,11 @@ def save_hotspots(df, source):
 
 
 def ingest(days=1):
+    """Descarga las 3 fuentes. Devuelve el total de focos nuevos dentro de la geocerca."""
+    total = 0
     for source in SOURCES:
         df = fetch_hotspots(source, days=days)
         nuevos = save_hotspots(df, source)
+        total += nuevos
         print(f"{source}: {len(df)} descargados, {nuevos} nuevos")
+    return total

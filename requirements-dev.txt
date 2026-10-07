@@ -1,0 +1,2 @@
+pytest>=8
+flake8>=7

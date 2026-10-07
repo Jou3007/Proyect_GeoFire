@@ -66,7 +66,7 @@ def autenticar(email: str, password: str):
             (intentos, intentos >= MAX_INTENTOS, uid),
         )
         if intentos >= MAX_INTENTOS:
-            return None, f"Demasiados intentos. Cuenta bloqueada: contacta al administrador."
+            return None, "Demasiados intentos. Cuenta bloqueada: contacta al administrador."
         return None, f"{MSG_CREDENCIALES} Intentos restantes: {MAX_INTENTOS - intentos}."
 
 

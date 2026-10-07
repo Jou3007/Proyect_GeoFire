@@ -2,6 +2,7 @@
 
 Las imagenes no se descargan: Earth Engine las procesa y solo vuelven los valores calculados.
 """
+import json
 import os
 from datetime import date, timedelta
 
@@ -21,7 +22,15 @@ ZONAS = {
 
 
 def init():
-    ee.Initialize(project=os.environ["GEE_PROJECT"])
+    """Con GEE_SERVICE_ACCOUNT (JSON de la cuenta de servicio) funciona sin navegador, p. ej. en GitHub Actions.
+    Sin esa variable usa la autenticacion de usuario (earthengine authenticate)."""
+    cuenta = os.getenv("GEE_SERVICE_ACCOUNT")
+    if cuenta:
+        info = json.loads(cuenta)
+        creds = ee.ServiceAccountCredentials(info["client_email"], key_data=cuenta)
+        ee.Initialize(creds, project=os.environ["GEE_PROJECT"])
+    else:
+        ee.Initialize(project=os.environ["GEE_PROJECT"])
 
 
 def _mask_clouds(img):

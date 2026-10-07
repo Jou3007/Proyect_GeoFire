@@ -221,7 +221,7 @@ def a_pdf(rep: Reporte) -> bytes:
     h.append(Paragraph("Fuentes de datos", h2))
     h += [Paragraph(f"• {f}", txt) for f in rep.fuentes]
     h.append(Paragraph("Limitaciones", h2))
-    h += [Paragraph(f"• {l}", txt) for l in rep.limitaciones]
+    h += [Paragraph(f"• {texto}", txt) for texto in rep.limitaciones]
 
     h.append(Paragraph("Detalle de incidentes", h2))
     if rep.df.empty:
