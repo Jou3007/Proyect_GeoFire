@@ -1,11 +1,28 @@
+from datetime import datetime, timezone
+
 import plotly.graph_objects as go
 import streamlit as st
 
 import ui
+from geofire import ciclo
 from geofire import repositorio as repo
 
 ui.inicializar()
 ui.encabezado("Centro de operaciones", "Centro de operaciones", "Pulso del territorio de Ucayali en tiempo casi real.")
+
+ultima = ciclo.ultima_ejecucion()
+if ultima:
+    hace = (datetime.now(timezone.utc) - ultima[0]).total_seconds() / 3600
+    ok = ultima[1] == "OK" and hace < 4
+    color = "#3f9d5b" if ok else "#d93025"
+    estado = "Sistema operativo" if ok else ("Ciclo con fallos" if ultima[1] != "OK" else "Sin actualizar hace más de 4 h")
+    st.markdown(
+        f"<div style='font-size:.8rem;color:#6b7a72;margin-bottom:.6rem'><span class='gf-punto' style='background:{color}'></span>"
+        f"{estado} · última actualización automática hace {hace:.1f} h</div>",
+        unsafe_allow_html=True,
+    )
+else:
+    st.caption("Sin ciclos automáticos registrados todavía.")
 
 horas = st.radio(
     "Ventana", [6, 24, 48, 72], index=3, horizontal=True,

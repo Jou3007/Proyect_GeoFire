@@ -43,6 +43,23 @@ services:
       - .:/app
       - gee_credentials:/root/.config/earthengine
 
+  # Opcional: repite el ciclo cada 3 h en tu PC. Se activa con: docker compose --profile auto up -d scheduler
+  scheduler:
+    build: .
+    profiles: ["auto"]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      CICLO_MINUTOS: "180"
+    command: python scripts/programador.py
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - gee_credentials:/root/.config/earthengine
+
 volumes:
   pgdata:
   gee_credentials:

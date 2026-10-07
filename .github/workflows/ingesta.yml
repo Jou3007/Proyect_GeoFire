@@ -1,0 +1,38 @@
+# Ciclo automatico cada 3 horas: ingesta FIRMS -> evaluacion de riesgo -> correo.
+# Solo corre si en Settings > Secrets and variables > Actions > Variables existe CICLO_ACTIVO = true
+# (requiere una base PostgreSQL/PostGIS en la nube; ver README, seccion "Ejecucion automatica").
+name: ingesta
+
+on:
+  schedule:
+    - cron: "0 */3 * * *" # cada 3 horas (UTC)
+  workflow_dispatch: {} # permite lanzarlo a mano
+
+concurrency:
+  group: ingesta
+  cancel-in-progress: false
+
+jobs:
+  ciclo:
+    if: ${{ vars.CICLO_ACTIVO == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/ciclo.py
+        env:
+          PYTHONPATH: src
+          NASA_FIRMS_MAP_KEY: ${{ secrets.NASA_FIRMS_MAP_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEE_PROJECT: ${{ secrets.GEE_PROJECT }}
+          GEE_SERVICE_ACCOUNT: ${{ secrets.GEE_SERVICE_ACCOUNT }}
+          SMTP_HOST: smtp.gmail.com
+          SMTP_PORT: "587"
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERTA_DESTINATARIOS: ${{ secrets.ALERTA_DESTINATARIOS }}

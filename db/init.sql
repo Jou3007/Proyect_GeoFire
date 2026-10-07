@@ -50,6 +50,16 @@ CREATE TABLE IF NOT EXISTS alertas (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_alertas_foco ON alertas (foco_id);
 
+CREATE TABLE IF NOT EXISTS ejecuciones (
+    id          BIGSERIAL PRIMARY KEY,
+    inicio      TIMESTAMPTZ NOT NULL,
+    fin         TIMESTAMPTZ NOT NULL,
+    estado      TEXT NOT NULL CHECK (estado IN ('OK', 'PARCIAL', 'ERROR')),
+    duracion_s  DOUBLE PRECISION,
+    detalle     JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_ejecuciones_inicio ON ejecuciones (inicio DESC);
+
 CREATE TABLE IF NOT EXISTS incidentes (
     id           BIGSERIAL PRIMARY KEY,
     alerta_id    BIGINT NOT NULL REFERENCES alertas(id),

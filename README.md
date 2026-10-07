@@ -87,3 +87,29 @@ Las fotos se guardan en `data/fotos/` (fuera de git). El nivel de riesgo no camb
 Pantalla "Reportes" (autoridad regional y administrador): filtra por periodo, nivel y estado y descarga PDF y CSV
 con los mismos totales. Incluye fecha de generacion, periodo, fuentes, limitaciones y el area afectada estimada
 con dNBR (opcional, usa Earth Engine). El area externa (oficial) no se incorpora; el documento lo indica.
+
+## Ejecucion automatica cada 3 horas
+
+Un ciclo = ingesta FIRMS -> evaluacion de riesgo -> correo (`python scripts/ciclo.py`, ~20 s). Si un paso falla se
+reintenta 2 veces y el ciclo continua; cada corrida queda en la tabla `ejecuciones`.
+
+**Opcion A: en tu PC (funciona ya).** Requiere Docker Desktop encendido y el PC despierto:
+```bash
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/004_ejecuciones.sql   # una vez
+docker compose --profile auto up -d scheduler      # arranca y repite cada 3 h
+docker compose --profile auto stop scheduler       # para detenerlo
+```
+
+**Opcion B: GitHub Actions (`.github/workflows/ingesta.yml`).** Corre en la nube aunque tu PC este apagado, pero necesita:
+1. Una base PostgreSQL con PostGIS en la nube (p. ej. Neon o Supabase). Cargar el esquema y el limite:
+   `psql "$DATABASE_URL" -f db/init.sql` y `python scripts/load_limite.py` con `DATABASE_URL` definida.
+2. Una cuenta de servicio de Google Cloud registrada en Earth Engine (su JSON va en el secreto `GEE_SERVICE_ACCOUNT`).
+3. En GitHub, *Settings > Secrets and variables > Actions*: secretos `DATABASE_URL`, `NASA_FIRMS_MAP_KEY`, `GEE_PROJECT`,
+   `GEE_SERVICE_ACCOUNT`, `SMTP_USER`, `SMTP_PASSWORD`, `ALERTA_DESTINATARIOS`; y la *variable* `CICLO_ACTIVO` = `true`.
+
+Mientras `CICLO_ACTIVO` no exista, el flujo se omite y no falla.
+
+## Integracion continua
+
+`.github/workflows/ci.yml` corre `flake8` y `pytest` (con una base PostGIS de prueba) en cada pull request a `develop` o `main`.
+Localmente: `pip install -r requirements-dev.txt && flake8 src app scripts tests && pytest`.

@@ -91,7 +91,9 @@ class TestValidacion(unittest.TestCase):
             val.validar(self.alerta, self.usuarios["guardaparque"], "CONFIRMADA", foto=JPG + b"0" * val.MAX_FOTO_BYTES)
 
     def test_validada_sale_de_pendientes(self):
-        ids = lambda: set(val.pendientes(24)["id"])
+        def ids():
+            return set(val.pendientes(24)["id"])
+
         self.assertIn(self.alerta, ids())
         val.validar(self.alerta, self.usuarios["guardaparque"], "CONFIRMADA")
         self.assertNotIn(self.alerta, ids())
