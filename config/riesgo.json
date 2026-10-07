@@ -5,5 +5,6 @@
   "frp_p90": 41.66,
   "distancia_comunidad_km": 10,
   "tipos_asentamiento": ["city", "town", "village", "hamlet"],
+  "cercania_sola_genera_alto": false,
   "vigencia_horas": 6
 }

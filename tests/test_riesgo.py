@@ -1,6 +1,6 @@
 import unittest
 
-from geofire.riesgo import Contexto, Foco, evaluar
+from geofire.riesgo import CONFIG, Contexto, Foco, evaluar
 
 
 class TestRiesgo(unittest.TestCase):
@@ -10,8 +10,29 @@ class TestRiesgo(unittest.TestCase):
         self.assertEqual(r["puntaje"], 70)
 
     def test_alto_con_una_condicion(self):
-        r = evaluar(Foco(frp=5), Contexto(dist_comunidad_km=4))
+        r = evaluar(Foco(frp=5), Contexto(en_anp=True))
         self.assertEqual(r["nivel"], "ALTO")
+
+    def test_cercania_sola_no_es_alto(self):
+        r = evaluar(Foco(frp=5), Contexto(dist_comunidad_km=4, ndvi=0.8))
+        self.assertEqual(r["nivel"], "BAJO")
+        self.assertNotIn("RN-02.1", r["reglas"])
+
+    def test_cercania_sola_con_frp_alto_es_medio(self):
+        self.assertEqual(evaluar(Foco(frp=20), Contexto(dist_comunidad_km=4, ndvi=0.8))["nivel"], "MEDIO")
+
+    def test_cercania_agrava_una_condicion_y_da_critico(self):
+        r = evaluar(Foco(frp=5), Contexto(dist_comunidad_km=4, ndvi=0.3))  # 02.1 + 02.3
+        self.assertEqual(r["nivel"], "CRITICO")
+        self.assertIn("RN-02.1", r["reglas"])
+
+    def test_una_condicion_independiente_sola_es_alto(self):
+        self.assertEqual(evaluar(Foco(frp=5), Contexto(ndvi=0.3))["nivel"], "ALTO")
+        self.assertEqual(evaluar(Foco(frp=5), Contexto(en_anp=True, ndvi=0.8))["nivel"], "ALTO")
+
+    def test_regla_literal_se_puede_reactivar_por_configuracion(self):
+        cfg = dict(CONFIG, cercania_sola_genera_alto=True)
+        self.assertEqual(evaluar(Foco(frp=5), Contexto(dist_comunidad_km=4, ndvi=0.8), cfg)["nivel"], "ALTO")
 
     def test_medio_por_frp(self):
         self.assertEqual(evaluar(Foco(frp=10), Contexto(ndvi=0.8))["nivel"], "MEDIO")
