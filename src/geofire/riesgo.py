@@ -37,6 +37,10 @@ def evaluar(foco: Foco, ctx: Contexto, cfg: dict = CONFIG) -> dict:
         "RN-02.3": ctx.ndvi is not None and ctx.ndvi < cfg["umbral_ndvi_estres"],
     }
     cumplidas = [k for k, v in condiciones.items() if v]
+    # Ajuste a RN-02: en Ucayali ~63 % de los focos esta a menos de 10 km de un asentamiento (quemas agricolas),
+    # asi que la cercania sola no genera alerta Alta: solo agrava otra condicion (ANP o NDVI de estres).
+    if not cfg.get("cercania_sola_genera_alto", False) and cumplidas == ["RN-02.1"]:
+        cumplidas = []
     puntos = 30 * len(cumplidas) + (10 if foco.confianza.lower() in ("high", "h") else 0)
 
     if len(cumplidas) >= 2:

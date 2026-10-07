@@ -54,10 +54,10 @@ class TestAsentamientos(unittest.TestCase):
         self.assertGreaterEqual(res["a_critico"], 1)
         self.assertEqual(self._nivel(aid), ("CRITICO", False))  # 02.1 + 02.3 = Critico, y se vuelve a avisar
 
-    def test_cercania_sola_es_alto(self):
-        aid = self._alerta(ndvi=0.80, en_anp=False, nivel="BAJO")
+    def test_cercania_sola_ya_no_genera_alto(self):
+        aid = self._alerta(ndvi=0.80, en_anp=False, nivel="ALTO")  # alerta inflada por la regla anterior
         alertas.reevaluar(horas=1)
-        self.assertEqual(self._nivel(aid)[0], "ALTO")
+        self.assertEqual(self._nivel(aid)[0], "BAJO")  # FRP 5 < p50: sin condiciones agravantes
 
     def test_alerta_validada_no_se_toca(self):
         aid = self._alerta(ndvi=0.30, en_anp=False, estado="FALSA_ALARMA")
