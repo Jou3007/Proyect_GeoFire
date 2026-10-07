@@ -1,0 +1,8 @@
+{
+  "_nota": "Valores provisionales. El umbral NDVI se calibra con el historico (Sprint 3) y todo se ajusta con el backtesting (Sprint 6).",
+  "umbral_ndvi_estres": 0.45,
+  "frp_p50": 7.61,
+  "frp_p90": 41.66,
+  "distancia_comunidad_km": 10,
+  "vigencia_horas": 6
+}

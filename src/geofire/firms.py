@@ -16,7 +16,7 @@ FIRMS_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{source}/{b
 # TODO: reemplazar por el limite oficial (GeoJSON) cuando se tenga.
 UCAYALI_BBOX = (-75.95, -12.00, -70.45, -7.25)
 
-SOURCES = ("VIIRS_SNPP_NRT", "MODIS_NRT")
+SOURCES = ("VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "MODIS_NRT")
 
 
 def fetch_hotspots(source, days=1, bbox=UCAYALI_BBOX):
@@ -47,7 +47,10 @@ def save_hotspots(df, source):
                      float(r.longitude), float(r.latitude)))
     sql = (
         "INSERT INTO focos_calor (fuente, fecha_hora, frp, confianza, geom) "
-        "VALUES (%s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326)) "
+        "SELECT %s, %s, %s, %s, p.geom FROM "
+        "(SELECT ST_SetSRID(ST_MakePoint(%s, %s), 4326) AS geom) p "
+        "WHERE EXISTS (SELECT 1 FROM zonas z WHERE z.tipo = 'geocerca' "
+        "AND ST_Intersects(z.geom, p.geom)) "  # RN-01: solo dentro de Ucayali + 5 km
         "ON CONFLICT DO NOTHING"
     )
     inserted = 0
