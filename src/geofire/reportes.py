@@ -12,6 +12,7 @@ FUENTES = [
     "Focos de calor: NASA FIRMS (VIIRS S-NPP, VIIRS NOAA-20 y MODIS).",
     "Índices NDVI, NDWI y NBR: Sentinel-2 SR (Copernicus), procesados en Google Earth Engine.",
     "Áreas Naturales Protegidas: WDPA (UNEP-WCMC).",
+    "Asentamientos y comunidades: © colaboradores de OpenStreetMap (licencia ODbL).",
     "Límite territorial: FAO GAUL 2015 (Ucayali) más una franja de 5 km.",
 ]
 LIMITACIONES = [
@@ -21,7 +22,8 @@ LIMITACIONES = [
     "no es una medición oficial y puede subestimarse si hubo nubes o pocas imágenes Sentinel-2 en el periodo.",
     "No se incorporaron superficies reportadas por fuentes externas; el área de este documento es solo la estimada por el sistema.",
     "Las horas se expresan en UTC. Los umbrales del motor de riesgo son provisionales y se ajustan con backtesting.",
-    "Datos de comunidades cercanas aún no incorporados: sin ellos la regla RN-02.1 no se evalúa y casi no hay alertas Críticas.",
+    "Los asentamientos provienen de OpenStreetMap, no del registro oficial de comunidades nativas (BDPI); pueden faltar comunidades. "
+    "La mayoría de focos está a menos de 10 km de algún asentamiento (RN-02.1), por lo que la cercanía sola es poco discriminante.",
 ]
 
 

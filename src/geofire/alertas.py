@@ -1,5 +1,6 @@
 """Pipeline foco -> indices (Earth Engine) -> motor de riesgo -> alerta (HU-06)."""
 from geofire import gee_indices as gi
+from geofire.asentamientos import distancias_km
 from geofire.db import get_connection
 from geofire.riesgo import Contexto, Foco, evaluar
 
@@ -27,6 +28,7 @@ def procesar(horas=72):
         for i in range(0, len(focos), LOTE):
             lote = focos[i : i + LOTE]
             idx = gi.indices_para_puntos([(f[0], f[1], f[2]) for f in lote])
+            dist = distancias_km(cur, [f[0] for f in lote])
             for fid, lon, lat, frp, conf, antig in lote:
                 d = idx.get(fid, {})
                 ndvi, ndwi = d.get("NDVI"), d.get("NDWI")
@@ -38,7 +40,7 @@ def procesar(horas=72):
                     continue
                 r = evaluar(
                     Foco(frp=float(frp or 0), confianza=conf, antiguedad_h=float(antig)),
-                    Contexto(ndvi=ndvi, en_anp=d.get("en_anp", False)),
+                    Contexto(ndvi=ndvi, en_anp=d.get("en_anp", False), dist_comunidad_km=dist.get(fid)),
                 )
                 cur.execute(
                     "INSERT INTO alertas (foco_id, nivel, ndvi, ndwi, nbr, puntaje, reglas, estado, en_anp) "
@@ -47,3 +49,37 @@ def procesar(horas=72):
                 )
                 resumen[r["nivel"]] += 1
     return len(focos), resumen
+
+
+def reevaluar(horas=None):
+    """Recalcula el nivel de las alertas aun sin validar con los datos ya guardados (NDVI, ANP) mas la
+    distancia a asentamientos. No consulta Earth Engine. Si una alerta sube a CRITICO se marca para notificar.
+    Devuelve {"revisadas": n, "cambiaron": n, "a_critico": n}."""
+    filtro = "AND f.fecha_hora >= now() - make_interval(hours => %(h)s)" if horas else ""
+    cambios = a_critico = 0
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT a.id, a.foco_id, a.nivel, a.ndvi, a.en_anp, f.frp, COALESCE(f.confianza, ''), "
+            "EXTRACT(EPOCH FROM (now() - f.fecha_hora)) / 3600 "
+            "FROM alertas a JOIN focos_calor f ON f.id = a.foco_id "
+            f"WHERE a.estado IN ('ACTIVA', 'REVISION_HISTORICA') {filtro}",
+            {"h": horas},
+        )
+        filas = cur.fetchall()
+        dist = distancias_km(cur, [f[1] for f in filas])
+        for aid, fid, nivel_antes, ndvi, en_anp, frp, conf, antig in filas:
+            r = evaluar(
+                Foco(frp=float(frp or 0), confianza=conf, antiguedad_h=float(antig)),
+                Contexto(ndvi=ndvi, en_anp=bool(en_anp), dist_comunidad_km=dist.get(fid)),
+            )
+            if r["nivel"] == nivel_antes:
+                continue
+            cambios += 1
+            sube = r["nivel"] == "CRITICO"
+            a_critico += sube
+            cur.execute(
+                "UPDATE alertas SET nivel = %s, puntaje = %s, reglas = %s, estado = %s, "
+                "notificada = CASE WHEN %s THEN FALSE ELSE notificada END WHERE id = %s",
+                (r["nivel"], r["puntaje"], r["reglas"], r["estado"], sube, aid),
+            )
+    return {"revisadas": len(filas), "cambiaron": cambios, "a_critico": a_critico}

@@ -113,3 +113,13 @@ Mientras `CICLO_ACTIVO` no exista, el flujo se omite y no falla.
 
 `.github/workflows/ci.yml` corre `flake8` y `pytest` (con una base PostGIS de prueba) en cada pull request a `develop` o `main`.
 Localmente: `pip install -r requirements-dev.txt && flake8 src app scripts tests && pytest`.
+
+## Comunidades y asentamientos (RN-02.1)
+
+```bash
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/005_asentamientos.sql   # una vez
+docker compose run --rm app python scripts/load_asentamientos.py    # descarga de OpenStreetMap (~1 min)
+docker compose run --rm app python scripts/reevaluar.py              # recalcula el nivel de las alertas sin validar
+```
+Fuente: OpenStreetMap (ODbL), no el registro oficial de comunidades nativas. Los tipos que cuentan para la regla se
+configuran en `config/riesgo.json` (`tipos_asentamiento`); tras cambiarlos, vuelve a correr `reevaluar.py`.
