@@ -42,6 +42,13 @@ with c3:
 with c4:
     ui.tarjeta("Focos en base historica", f"{int(tot['focos']):,}", f"desde {tot['desde']:%d/%m/%Y}")
 
+sin_eval = repo.no_evaluables(horas)
+if sin_eval:
+    detalle = ", ".join(
+        f"{n} {'sobre agua (NDWI)' if m == 'AGUA' else 'sin imágenes Sentinel-2 válidas'}" for m, n in sin_eval.items()
+    )
+    st.caption(f"No evaluables en las últimas {horas} h (no cuentan como nivel de riesgo): {detalle}.")
+
 st.write("")
 izq, der = st.columns([3, 2])
 with izq:

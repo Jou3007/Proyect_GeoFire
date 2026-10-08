@@ -1,4 +1,5 @@
 import sys
+from html import escape
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -25,6 +26,7 @@ TODAS = {
     "validacion": st.Page("views/validacion.py", title="Mis alertas", url_path="validacion"),
     "reportes": st.Page("views/reportes.py", title="Reportes", url_path="reportes"),
     "usuarios": st.Page("views/usuarios.py", title="Usuarios", url_path="usuarios"),
+    "auditoria": st.Page("views/auditoria.py", title="Auditoría", url_path="auditoria"),
 }
 if usuario["rol"] == "guardaparque":  # su pantalla principal es la validacion en campo
     TODAS["validacion"] = st.Page(
@@ -35,11 +37,12 @@ permitidas = [TODAS[k] for k in seguridad.PERMISOS[usuario["rol"]]]
 ROL_TXT = {"administrador": "Administrador", "autoridad_regional": "Autoridad regional", "guardaparque": "Guardaparque"}
 with st.sidebar:
     st.markdown(
-        f"<div style='font-size:.85rem'><b>{usuario['nombre']}</b><br>"
+        f"<div style='font-size:.85rem'><b>{escape(usuario['nombre'])}</b><br>"
         f"<span style='color:#6b7a72'>{ROL_TXT[usuario['rol']]}</span></div>",
         unsafe_allow_html=True,
     )
     if st.button("Cerrar sesión", use_container_width=True):
+        seguridad.cerrar_sesion(usuario)
         del st.session_state["usuario"]
         st.rerun()
 

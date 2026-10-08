@@ -1,9 +1,15 @@
 import unittest
 
-from geofire import ciclo
+from geofire import auditoria, ciclo
 from geofire.db import get_connection
+from util_pruebas import MARCA_CICLO, borrar_auditoria_de_prueba
 
 SIN_ESPERA = (0, 0)
+P_ING, P_EVAL, P_CORREO = (MARCA_CICLO + n for n in ("ingesta", "evaluacion", "correo"))
+
+
+def roto():
+    raise RuntimeError("NASA no responde")
 
 
 class TestCiclo(unittest.TestCase):
@@ -14,7 +20,8 @@ class TestCiclo(unittest.TestCase):
 
     def tearDown(self):
         with get_connection() as conn, conn.cursor() as cur:
-            cur.execute("DELETE FROM ejecuciones WHERE id > %s", (self.id_base,))
+            cur.execute("DELETE FROM ejecuciones WHERE id > %s AND detalle::text LIKE %s", (self.id_base, f"%{MARCA_CICLO}%"))
+        borrar_auditoria_de_prueba()
 
     def test_reintenta_y_termina_bien_al_tercer_intento(self):
         llamadas = []
@@ -33,30 +40,30 @@ class TestCiclo(unittest.TestCase):
             ciclo.reintentar(lambda: (_ for _ in ()).throw(ConnectionError("x")), SIN_ESPERA)
 
     def test_un_paso_caido_no_detiene_el_ciclo(self):
-        def roto():
-            raise RuntimeError("NASA no responde")
-
-        detalle = ciclo.ejecutar([("ingesta", roto), ("evaluacion", lambda: 5), ("correo", lambda: 0)], SIN_ESPERA)
+        detalle = ciclo.ejecutar([(P_ING, roto), (P_EVAL, lambda: 5), (P_CORREO, lambda: 0)], SIN_ESPERA)
         self.assertEqual(detalle["estado"], "PARCIAL")
-        self.assertFalse(detalle["ingesta"]["ok"])
-        self.assertIn("NASA no responde", detalle["ingesta"]["error"])
-        self.assertTrue(detalle["evaluacion"]["ok"])
-        self.assertTrue(detalle["correo"]["ok"])
+        self.assertFalse(detalle[P_ING]["ok"])
+        self.assertIn("NASA no responde", detalle[P_ING]["error"])
+        self.assertTrue(detalle[P_EVAL]["ok"])
+        self.assertTrue(detalle[P_CORREO]["ok"])
 
     def test_todo_bien(self):
-        detalle = ciclo.ejecutar([("a", lambda: 1), ("b", lambda: 2)], SIN_ESPERA)
-        self.assertEqual(detalle["estado"], "OK")
+        self.assertEqual(ciclo.ejecutar([(P_ING, lambda: 1), (P_EVAL, lambda: 2)], SIN_ESPERA)["estado"], "OK")
 
     def test_todo_mal_es_error(self):
-        def roto():
-            raise RuntimeError("x")
-
-        self.assertEqual(ciclo.ejecutar([("a", roto), ("b", roto)], SIN_ESPERA)["estado"], "ERROR")
+        self.assertEqual(ciclo.ejecutar([(P_ING, roto), (P_EVAL, roto)], SIN_ESPERA)["estado"], "ERROR")
 
     def test_queda_registrado(self):
-        ciclo.ejecutar([("a", lambda: 1)], SIN_ESPERA)
+        ciclo.ejecutar([(P_ING, lambda: 1)], SIN_ESPERA)
         fin, estado = ciclo.ultima_ejecucion()
         self.assertEqual(estado, "OK")
+
+    def test_errores_y_resumen_quedan_en_auditoria_rnf_08(self):
+        ciclo.ejecutar([(P_ING, roto), (P_EVAL, lambda: 5)], SIN_ESPERA)
+        errores = auditoria.consultar(["ERROR_API"], 100)
+        self.assertTrue(any(MARCA_CICLO in str(d) and "NASA no responde" in str(d) for d in errores["detalle"]))
+        ciclos = auditoria.consultar(["CICLO"], 100)
+        self.assertTrue(any(MARCA_CICLO in str(d) for d in ciclos["detalle"]))
 
 
 if __name__ == "__main__":

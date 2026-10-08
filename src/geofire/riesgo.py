@@ -1,12 +1,14 @@
 """Motor de riesgo (HU-06): aplica RN-02, RN-04 y RN-05 a un foco ya filtrado por RN-01."""
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-CONFIG = json.loads(
-    (Path(__file__).resolve().parents[2] / "config" / "riesgo.json").read_text(encoding="utf-8")
-)
+_ARCHIVO = Path(__file__).resolve().parents[2] / "config" / "riesgo.json"
+CONFIG = json.loads(_ARCHIVO.read_text(encoding="utf-8"))
+# Huella corta del contenido de config/riesgo.json: identifica con que version del modelo se evaluo (AC-06.2)
+CONFIG_VERSION = hashlib.sha256(_ARCHIVO.read_bytes().replace(b"\r\n", b"\n")).hexdigest()[:10]
 
 
 @dataclass
