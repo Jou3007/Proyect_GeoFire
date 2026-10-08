@@ -163,6 +163,17 @@ def a_csv(rep: Reporte) -> bytes:
     return ("﻿" + buf.getvalue()).encode("utf-8")  # BOM: Excel abre bien las tildes
 
 
+def a_geojson(rep: Reporte) -> bytes:
+    """Los mismos incidentes del CSV como GeoJSON (RNF-07), con los metadatos del reporte en 'properties' de la coleccion."""
+    from geofire import geojson
+    cols = ["codigo", "nivel", "estado_txt", "fecha_hora", "provincia", "distrito", "frp", "ndvi", "ndwi", "nbr", "en_anp",
+            "puntaje", "fuente"]
+    fc = geojson.puntos(rep.df, cols) if not rep.df.empty else {"type": "FeatureCollection", "features": []}
+    fc["properties"] = {"titulo": TITULO, "generado_utc": f"{rep.generado:%Y-%m-%d %H:%M}", "periodo": f"{rep.inicio} / {rep.fin}",
+                        "total": rep.total, "fuentes": rep.fuentes, "limitaciones": rep.limitaciones}
+    return geojson.a_texto(fc).encode("utf-8")
+
+
 MAX_FILAS_PDF = 400
 
 

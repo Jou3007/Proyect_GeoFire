@@ -8,7 +8,7 @@ from streamlit_folium import st_folium
 import ui
 from geofire import gee_indices as gi
 from geofire import repositorio as repo
-from geofire import zonas
+from geofire import seguridad, zonas
 
 ui.inicializar()
 ui.encabezado("Visor cartográfico", "Mapa visor", "Focos de calor, zonas evaluadas y capas satelitales de Ucayali.")
@@ -39,6 +39,13 @@ def _geojson_zonas():
     return zonas.geojson_con_niveles("distrito")
 
 
+restringido, zona_id = seguridad.alcance(st.session_state["usuario"])
+if restringido and not zona_id:
+    st.warning("Aún no tienes una zona asignada. Pídele al administrador que te asigne un distrito o una provincia.")
+    st.stop()
+if restringido:
+    st.info(f"Estás viendo solo tu zona asignada: {st.session_state['usuario']['zona']}.")
+
 # ---------- filtros ----------
 f1, f2, f3 = st.columns([1, 1, 1.4])
 provincia = f1.selectbox("Provincia", ["Todas"] + repo.provincias())
@@ -55,7 +62,7 @@ modo = m1.radio("Modo", ["Tiempo real", "Evolución histórica"], horizontal=Tru
 hoy = date.today()
 if modo == "Tiempo real":
     horas = m2.select_slider("Ventana de tiempo", [6, 24, 48, 72], value=72, format_func=lambda h: f"{h} h")
-    df = repo.alertas(horas, [n for n in niveles if n != "SIN_EVALUAR"], prov, dist) if niveles else repo.alertas(0, [])
+    df = repo.alertas(horas, [n for n in niveles if n != "SIN_EVALUAR"], prov, dist, zona_id) if niveles else repo.alertas(0, [])
     fecha_ref = hoy
     leyenda = f"{len(df)} focos en las últimas {horas} h"
 else:
@@ -65,7 +72,7 @@ else:
     ventana_dias = c2.selectbox("Mostrar", [1, 3, 7, 15, 30], index=2, format_func=lambda d: f"{d} día(s) hasta esa fecha")
     desde = datetime.combine(fecha_hasta - timedelta(days=ventana_dias - 1), time.min, tzinfo=timezone.utc)
     hasta = datetime.combine(fecha_hasta + timedelta(days=1), time.min, tzinfo=timezone.utc)
-    df = repo.focos_en_periodo(desde, hasta, prov, dist)
+    df = repo.focos_en_periodo(desde, hasta, prov, dist, zona_id=zona_id)
     df["nivel"] = df["nivel"].fillna("SIN_EVALUAR")
     df = df[df["nivel"].isin(niveles)] if niveles else df.iloc[0:0]
     fecha_ref = fecha_hasta
@@ -144,7 +151,7 @@ def construir_mapa(corte, centro, zoom, caja, avisos):
             ).add_to(m)
     for r in df.head(3000).itertuples():
         nivel = r.nivel
-        color = ui.COLOR.get(nivel, "#6b7a72")
+        color = ui.COLOR.get(nivel, "#55645c")
         etiqueta = ui.ETIQUETA.get(nivel, "Sin evaluar")
         extra = f"<br>Puntaje {r.puntaje} · NDVI {r.ndvi:.2f}" if hasattr(r, "puntaje") and r.puntaje == r.puntaje else ""
         folium.CircleMarker(
@@ -186,7 +193,7 @@ with panel_col:
         for r in df.head(60).itertuples():
             nivel = r.nivel
             st.markdown(
-                f"<div class='gf-alerta' style='border-color:{ui.COLOR.get(nivel, '#6b7a72')}'>"
+                f"<div class='gf-alerta' style='border-color:{ui.COLOR.get(nivel, '#55645c')}'>"
                 f"<b>{ui.ETIQUETA.get(nivel, 'Sin evaluar')}</b>"
                 f"<span>{r.lat:.3f}, {r.lon:.3f} · {r.fecha_hora:%d/%m %H:%M} UTC<br>"
                 f"{r.distrito or 'Franja de 5 km'} · FRP {r.frp} MW</span></div>",

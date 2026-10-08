@@ -25,8 +25,12 @@ ui.encabezado("Operaciones de campo", "Mis alertas", "Alertas Alto y Crítico pe
 if st.session_state.pop("validacion_ok", None):
     st.success("Validación registrada. Gracias.")
 
-df = val.pendientes(72)
-st.caption(f"{len(df)} alertas pendientes (últimas 72 h)")
+restringido, zona_id = seguridad.alcance(usuario)
+if restringido and not zona_id:
+    st.warning("Aún no tienes una zona asignada. Pídele al administrador que te asigne un distrito o una provincia.")
+    st.stop()
+df = val.pendientes(72, zona_id)
+st.caption(f"{len(df)} alertas pendientes (últimas 72 h)" + (f" en tu zona: {usuario['zona']}" if restringido else ""))
 
 if df.empty:
     st.info("No hay alertas pendientes.")
@@ -82,7 +86,7 @@ for r in hist.itertuples():
     etiqueta = "🔥 Confirmada" if r.estado == "CONFIRMADA" else "✅ Falsa alarma"
     st.markdown(
         f"**{etiqueta}** · {r.lat:.3f}, {r.lon:.3f} · {r.validado_en:%d/%m %H:%M}  \n"
-        f"<span style='color:#6b7a72;font-size:.85rem'>{escape(r.comentario or 'Sin comentario')}"
+        f"<span style='color:#55645c;font-size:.85rem'>{escape(r.comentario or 'Sin comentario')}"
         f"{' · evidencia: ' + escape(r.referencia_evidencia) if r.referencia_evidencia else ''}</span>",
         unsafe_allow_html=True,
     )

@@ -3,6 +3,7 @@ from html import escape
 import streamlit as st
 
 import ui
+from geofire import repositorio as repo
 from geofire import seguridad
 
 ui.inicializar()
@@ -32,19 +33,29 @@ with st.expander("➕ Nuevo usuario", expanded=False):
             except ValueError as e:
                 st.error(str(e))
 
+ZONAS = {int(r.id): f"{r.nombre} ({r.tipo})" for r in repo._query(
+    "SELECT id, nombre, tipo FROM zonas WHERE tipo IN ('distrito', 'provincia') ORDER BY tipo DESC, nombre").itertuples()}
 lista = seguridad.listar_usuarios()
 st.caption(f"{len(lista)} usuarios")
 for u in lista:
     estado = "Bloqueada" if u["bloqueado"] else ("Inactiva" if not u["activo"] else "Activa")
-    color = "#d93025" if estado != "Activa" else "#3f9d5b"
+    color = "#a8201a" if estado != "Activa" else "#1b6636"
     acceso = f"{u['ultimo_acceso']:%d/%m/%Y %H:%M}" if u["ultimo_acceso"] else "nunca"
     a, b, c, d = st.columns([3, 1.5, 1, 1.5])
     a.markdown(
         f"<b>{escape(u['nombre'] or u['email'])}</b><br>"
-        f"<span style='color:#6b7a72;font-size:.8rem'>{escape(u['email'])} · último acceso: {acceso}</span>",
+        f"<span style='color:#55645c;font-size:.8rem'>{escape(u['email'])} · último acceso: {acceso}</span>",
         unsafe_allow_html=True,
     )
     b.markdown(ROL_TXT[u["rol"]])
+    if u["rol"] == "guardaparque":
+        opciones = [None] + list(ZONAS)
+        actual = u["zona_id"] if u["zona_id"] in ZONAS else None
+        nueva = b.selectbox("Zona", opciones, index=opciones.index(actual), key=f"z{u['id']}", label_visibility="collapsed",
+                            format_func=lambda z: "Sin zona asignada" if z is None else ZONAS[z])
+        if nueva != actual:
+            seguridad.asignar_zona(u["id"], nueva, actor=usuario)
+            st.rerun()
     c.markdown(f"<span class='gf-badge' style='background:{color}22;color:{color}'>{estado}</span>", unsafe_allow_html=True)
     es_yo = u["id"] == usuario["id"]
     with d:

@@ -7,6 +7,7 @@ reintenta en el siguiente ciclo; si cae sobre agua se registra como excluido (AC
 from geofire import gee_indices as gi
 from geofire.asentamientos import distancias_km
 from geofire.db import get_connection
+from geofire.fuentes_conocidas import cerca_de_fuente
 from geofire.riesgo import CONFIG_VERSION, Contexto, Foco, evaluar
 
 LOTE = 300
@@ -58,6 +59,7 @@ def procesar(horas=72):
             idx, meta = gi.indices_para_puntos([(f[0], f[1], f[2]) for f in lote], con_meta=True)
             lote_id = _guardar_lote_imagenes(cur, meta)
             dist = distancias_km(cur, [f[0] for f in lote])
+            industriales = cerca_de_fuente(cur, [f[0] for f in lote])  # RN-04
             for fid, lon, lat, frp, conf, antig in lote:
                 d = idx.get(fid, {})
                 ndvi, ndwi = d.get("NDVI"), d.get("NDWI")
@@ -71,7 +73,8 @@ def procesar(horas=72):
                     continue
                 r = evaluar(
                     Foco(frp=float(frp or 0), confianza=conf, antiguedad_h=float(antig)),
-                    Contexto(ndvi=ndvi, en_anp=d.get("en_anp", False), dist_comunidad_km=dist.get(fid)),
+                    Contexto(ndvi=ndvi, en_anp=d.get("en_anp", False), dist_comunidad_km=dist.get(fid),
+                             cerca_fuente_conocida=fid in industriales),
                 )
                 cur.execute(
                     "INSERT INTO alertas (foco_id, nivel, ndvi, ndwi, nbr, puntaje, reglas, estado, en_anp, "
@@ -100,15 +103,17 @@ def reevaluar(horas=None):
             "SELECT a.id, a.foco_id, a.nivel, a.ndvi, a.en_anp, f.frp, COALESCE(f.confianza, ''), "
             "EXTRACT(EPOCH FROM (now() - f.fecha_hora)) / 3600 "
             "FROM alertas a JOIN focos_calor f ON f.id = a.foco_id "
-            f"WHERE a.evaluable AND a.estado IN ('ACTIVA', 'REVISION_HISTORICA') {filtro}",
+            f"WHERE a.evaluable AND a.estado IN ('ACTIVA', 'REVISION_HISTORICA', 'FUENTE_CONOCIDA') {filtro}",
             {"h": horas},
         )
         filas = cur.fetchall()
         dist = distancias_km(cur, [f[1] for f in filas])
+        industriales = cerca_de_fuente(cur, [f[1] for f in filas])
         for aid, fid, nivel_antes, ndvi, en_anp, frp, conf, antig in filas:
             r = evaluar(
                 Foco(frp=float(frp or 0), confianza=conf, antiguedad_h=float(antig)),
-                Contexto(ndvi=ndvi, en_anp=bool(en_anp), dist_comunidad_km=dist.get(fid)),
+                Contexto(ndvi=ndvi, en_anp=bool(en_anp), dist_comunidad_km=dist.get(fid),
+                         cerca_fuente_conocida=fid in industriales),
             )
             if r["nivel"] == nivel_antes:
                 continue

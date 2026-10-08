@@ -153,3 +153,15 @@ docker compose run --rm app python scripts/validar_mascara_agua.py  # regenera d
   con opacidad, humo (AOD) e imagen VIIRS de NASA Worldview, comparacion lado a lado de dos fechas.
 - Viento: Open-Meteo (Worldview solo publica viento sobre oceanos).
 - Mascara de agua validada contra radar Sentinel-1: ver `docs/validacion_mascara_agua.md`.
+
+## Diseno completo: RN-04, zona asignada, geocercas, GeoJSON y alto contraste
+
+```bash
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/009_fuentes_conocidas_zona_usuario.sql   # una vez
+docker compose run --rm app python scripts/load_fuentes_conocidas.py   # aserraderos y plantas de OpenStreetMap (~1 min)
+```
+- **RN-04**: un foco a menos de `radio_m` de una fuente conocida queda como *Fuente conocida* (BAJO), salvo FRP sobre el p90.
+- **Zona asignada** (AC-09.2): el administrador asigna un distrito o provincia a cada guardaparque; solo ve y valida lo de su zona.
+- **Geocercas** (administrador): sube el GeoJSON de Ucayali (se valida topologia y area) y carga fuentes conocidas (GeoJSON/CSV).
+- **GeoJSON** (RNF-07): incidentes, reportes y zonas se exportan en RFC 7946.
+- **Alto contraste** (RNF-05): interruptor en el menu lateral; contraste medido (WCAG AA en modo normal, AAA en alto contraste).

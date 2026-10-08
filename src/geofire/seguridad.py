@@ -16,7 +16,7 @@ ROLES = ("administrador", "autoridad_regional", "guardaparque")
 
 # Paginas a las que accede cada rol (HU-09: "acceso denegado a paginas fuera del rol")
 PERMISOS = {
-    "administrador": ("centro", "mapa", "zonas", "incidentes", "reportes", "usuarios", "auditoria"),
+    "administrador": ("centro", "mapa", "zonas", "incidentes", "reportes", "geocercas", "usuarios", "auditoria"),
     "autoridad_regional": ("centro", "mapa", "zonas", "incidentes", "validacion", "reportes"),
     "guardaparque": ("validacion", "mapa", "incidentes"),
 }
@@ -59,8 +59,8 @@ def autenticar(email: str, password: str):
     email = (email or "").strip().lower()
     with get_connection() as conn, conn.cursor() as cur:
         cur.execute(
-            "SELECT id, email, nombre, password_hash, rol, intentos_fallidos, bloqueado, activo "
-            "FROM usuarios WHERE lower(email) = %s",
+            "SELECT u.id, u.email, u.nombre, u.password_hash, u.rol, u.intentos_fallidos, u.bloqueado, u.activo, "
+            "u.zona_id, z.nombre FROM usuarios u LEFT JOIN zonas z ON z.id = u.zona_id WHERE lower(u.email) = %s",
             (email,),
         )
         fila = cur.fetchone()
@@ -68,7 +68,7 @@ def autenticar(email: str, password: str):
             verificar_password(password or "", _HASH_FALSO)
             auditoria.registrar(auditoria.LOGIN_FALLIDO, email=email, detalle={"motivo": "usuario inexistente"})
             return None, MSG_CREDENCIALES
-        uid, mail, nombre, ph, rol, intentos, bloqueado, activo = fila
+        uid, mail, nombre, ph, rol, intentos, bloqueado, activo, zona_id, zona = fila
         if bloqueado or not activo:
             auditoria.registrar(auditoria.LOGIN_FALLIDO, uid, mail, {"motivo": "cuenta bloqueada o inactiva"})
             return None, MSG_BLOQUEADA
@@ -79,7 +79,7 @@ def autenticar(email: str, password: str):
             if es_legado(ph):  # migracion transparente PBKDF2 -> bcrypt
                 cur.execute("UPDATE usuarios SET password_hash = %s WHERE id = %s", (hash_password(password), uid))
             auditoria.registrar(auditoria.LOGIN_OK, uid, mail, {"rol": rol})
-            return {"id": uid, "email": mail, "nombre": nombre or mail, "rol": rol}, ""
+            return {"id": uid, "email": mail, "nombre": nombre or mail, "rol": rol, "zona_id": zona_id, "zona": zona}, ""
         intentos += 1
         cur.execute(
             "UPDATE usuarios SET intentos_fallidos = %s, bloqueado = %s WHERE id = %s",
@@ -128,11 +128,25 @@ def crear_usuario(email: str, nombre: str, rol: str, password: str, actor: dict 
 def listar_usuarios():
     with get_connection() as conn, conn.cursor() as cur:
         cur.execute(
-            "SELECT id, email, nombre, rol, activo, bloqueado, intentos_fallidos, ultimo_acceso "
-            "FROM usuarios ORDER BY id"
+            "SELECT u.id, u.email, u.nombre, u.rol, u.activo, u.bloqueado, u.intentos_fallidos, u.ultimo_acceso, "
+            "u.zona_id, z.nombre AS zona FROM usuarios u LEFT JOIN zonas z ON z.id = u.zona_id ORDER BY u.id"
         )
         cols = [d[0] for d in cur.description]
         return [dict(zip(cols, f)) for f in cur.fetchall()]
+
+
+def alcance(usuario: dict):
+    """(restringido, zona_id): el guardaparque solo ve y valida lo de su zona asignada (AC-09.2)."""
+    if usuario["rol"] == "guardaparque":
+        return True, usuario.get("zona_id")
+    return False, None
+
+
+def asignar_zona(uid: int, zona_id, actor: dict | None = None) -> None:
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("UPDATE usuarios SET zona_id = %s WHERE id = %s", (zona_id, uid))
+    auditoria.registrar(auditoria.ZONA_ASIGNADA, (actor or {}).get("id"), (actor or {}).get("email"),
+                        {"usuario_id": uid, "zona_id": zona_id})
 
 
 def desbloquear(uid: int, actor: dict | None = None) -> None:
