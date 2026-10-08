@@ -137,3 +137,19 @@ docker compose exec -T db psql -U geofire -d geofire < db/migrations/006_auditor
 - Contrasenas con **bcrypt** (las antiguas PBKDF2 se migran solas al iniciar sesion).
 - Validar una alerta exige justificacion (>= 10 caracteres); confirmarla exige foto o referencia de evidencia. Las fotos se
   vuelven a guardar con Pillow (se quitan los metadatos EXIF).
+
+## Nucleo preventivo: zonas, capas y mascara de agua
+
+```bash
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/007_zonas_evaluacion.sql   # una vez
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/008_validaciones_mascara.sql # una vez
+docker compose run --rm app python scripts/load_zonas.py            # 14 distritos y 4 provincias (GADM 4.1)
+docker compose run --rm app python scripts/validar_mascara_agua.py  # regenera docs/validacion_mascara_agua.md
+```
+- **Zonas en riesgo** (pantalla nueva): evaluacion por distrito y provincia con Sentinel-2 aunque no haya focos
+  (NDVI, % de vegetacion en estres, anomalia frente a 3 anios previos, quemas activas). Corre sola una vez al dia en el
+  ciclo. Sin cobertura de imagenes la zona queda **No evaluable** (no es un nivel de riesgo).
+- **Mapa visor**: filtros por provincia y distrito, linea de tiempo historica, capas NDVI / estres / NBR de Earth Engine
+  con opacidad, humo (AOD) e imagen VIIRS de NASA Worldview, comparacion lado a lado de dos fechas.
+- Viento: Open-Meteo (Worldview solo publica viento sobre oceanos).
+- Mascara de agua validada contra radar Sentinel-1: ver `docs/validacion_mascara_agua.md`.

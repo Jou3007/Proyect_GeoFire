@@ -9,9 +9,13 @@ from datetime import date, timedelta
 import ee
 from dotenv import load_dotenv
 
+from geofire.riesgo import CONFIG
+
 load_dotenv()
 
 S2 = "COPERNICUS/S2_SR_HARMONIZED"
+# Pixeles con NDWI por encima de este valor se consideran agua y no vegetacion (HU-04). Validado en docs/validacion_mascara_agua.md
+UMBRAL_AGUA = CONFIG["umbral_ndwi_agua"]
 
 # Puntos de control (lon, lat)
 ZONAS = {
@@ -44,7 +48,8 @@ def _add_indices(img):
     ndvi = img.normalizedDifference(["B8", "B4"]).rename("NDVI")
     ndwi = img.normalizedDifference(["B3", "B8"]).rename("NDWI")
     nbr = img.normalizedDifference(["B8", "B12"]).rename("NBR")
-    return img.addBands([ndvi, ndwi, nbr])
+    mndwi = img.normalizedDifference(["B3", "B11"]).rename("MNDWI")  # agua con SWIR: mejor en rios turbios
+    return img.addBands([ndvi, ndwi, nbr, mndwi])
 
 
 def collection(region, days=30, hasta=None):
@@ -151,7 +156,7 @@ def area_quemada_ha(puntos, inicio, fin, radio_m=500):
 
     quemado = (
         pre.select("NBR").subtract(post.select("NBR")).gt(UMBRAL_DNBR)
-        .And(pre.select("NDWI").lt(0))  # no cuenta agua
+        .And(pre.select("NDWI").lt(UMBRAL_AGUA))  # no cuenta agua
         .rename("q")
     )
     r = (
@@ -166,3 +171,74 @@ def area_quemada_ha(puntos, inicio, fin, radio_m=500):
         "imagenes_previas": out["npre"],
         "imagenes_posteriores": out["npost"],
     }
+
+
+def compuesto_zonas(zonas, corte, ventana_dias=30, anios_base=3, umbral_estres=0.45, escala=100):
+    """Estadisticas por zona SIN necesidad de focos (HU-03, AC-06.1): NDVI medio, % de vegetacion con estres,
+    cobertura de imagen valida y NDVI historico (mismo periodo de los `anios_base` anios anteriores).
+
+    zonas: lista de (id, geojson_geometry). Solo usa imagenes hasta la fecha de corte (AC-06.2).
+    Devuelve ({zona_id: {...}}, meta) con meta = imagenes Sentinel-2 usadas (AC-03.1).
+    """
+    feats = [ee.Feature(ee.Geometry(g), {"zid": zid}) for zid, g in zonas]
+    fc = ee.FeatureCollection(feats)
+    region = fc.geometry().bounds()
+    desde = corte - timedelta(days=ventana_dias)
+
+    def compuesto(d, h):
+        col = collection_entre(region, d, h)
+        return col, col.select(["NDVI", "NDWI"]).median()
+
+    col_actual, actual = compuesto(desde, corte)
+    ndvi = actual.select("NDVI")
+    tierra = actual.select("NDWI").lt(UMBRAL_AGUA)  # el agua no cuenta como vegetacion (HU-04)
+    ndvi_tierra = ndvi.updateMask(tierra)
+    bandas = [
+        ndvi_tierra.rename("ndvi"),
+        ndvi_tierra.lt(umbral_estres).rename("estres"),
+        ndvi.mask().unmask(0).rename("valida"),  # fraccion de la zona con imagen valida
+        tierra.unmask(0).rename("tierra_valida"),
+    ]
+    hist = []
+    for k in range(1, anios_base + 1):
+        d, h = desde - timedelta(days=365 * k), corte - timedelta(days=365 * k)
+        _, c = compuesto(d, h)
+        hist.append(c.select("NDVI").updateMask(c.select("NDWI").lt(UMBRAL_AGUA)))
+    bandas.append(ee.ImageCollection(hist).mean().rename("ndvi_historico"))
+
+    img = ee.Image.cat(bandas)
+    out = img.reduceRegions(fc, ee.Reducer.mean(), scale=escala, tileScale=8)
+    info = ee.Dictionary({"features": out.toList(out.size()), "ids": col_actual.aggregate_array("system:index")}).getInfo()
+    res = {}
+    for f in info["features"]:
+        p = f["properties"]
+        res[p["zid"]] = {k: p.get(k) for k in ("ndvi", "estres", "valida", "tierra_valida", "ndvi_historico")}
+    meta = {"coleccion": S2, "desde": desde, "hasta": corte, "imagenes": sorted(info["ids"])}
+    return res, meta
+
+
+CAPAS = {  # nombre -> (descripcion, parametros de visualizacion)
+    "NDVI": ("Vigor de la vegetación (NDVI)",
+             {"min": 0.0, "max": 0.9, "palette": ["#a52a2a", "#e6c95c", "#9acd32", "#1a7a2e", "#0b4d1a"]}),
+    "ESTRES": ("Estrés de la vegetación (NDVI bajo el umbral)", {"min": 0, "max": 1, "palette": ["#d93025"]}),
+    "NBR": ("Severidad de quema (NBR)",
+            {"min": -0.5, "max": 0.8, "palette": ["#7a0403", "#f08a24", "#f5e663", "#76b852", "#1a6b3a"]}),
+}
+
+
+def url_capa(capa, region_geojson, corte, ventana_dias=30, umbral_estres=0.45):
+    """URL de teselas de Earth Engine para dibujar una capa tematica en el mapa (RF-08, RF-09).
+    capa: 'NDVI', 'ESTRES' o 'NBR'. Se recorta a la region dada."""
+    region = ee.Geometry(region_geojson)
+    col = collection_entre(region, corte - timedelta(days=ventana_dias), corte)
+    comp = col.select(["NDVI", "NDWI", "NBR"]).median().clip(region)
+    tierra = comp.select("NDWI").lt(UMBRAL_AGUA)
+    if capa == "NDVI":
+        img = comp.select("NDVI").updateMask(tierra)
+    elif capa == "ESTRES":
+        img = comp.select("NDVI").updateMask(tierra).lt(umbral_estres).selfMask()
+    elif capa == "NBR":
+        img = comp.select("NBR").updateMask(tierra)
+    else:
+        raise ValueError(f"Capa desconocida: {capa}")
+    return img.getMapId(CAPAS[capa][1])["tile_fetcher"].url_format

@@ -10,7 +10,7 @@ from geofire.db import get_connection
 from geofire.riesgo import CONFIG_VERSION, Contexto, Foco, evaluar
 
 LOTE = 300
-UMBRAL_AGUA_NDWI = 0.0  # HU-04: NDWI > 0 es agua (rio, cocha); no se evalua como vegetacion
+UMBRAL_AGUA_NDWI = gi.UMBRAL_AGUA  # HU-04: NDWI sobre el umbral es agua (rio, cocha); no se evalua como vegetacion
 MOTIVO_SIN_IMAGENES = "SIN_IMAGENES"
 MOTIVO_AGUA = "AGUA"
 ESTADO_NO_EVALUABLE = "NO_EVALUABLE"

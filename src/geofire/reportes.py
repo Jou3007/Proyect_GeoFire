@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
-from geofire.repositorio import ESTADO_ETIQUETA, NIVELES, _query
+from geofire.repositorio import ESTADO_ETIQUETA, NIVELES, ZONA_FILTRO, ZONA_JOIN, _query, _zona_params
 
 TITULO = "Reporte del prototipo académico GeoFire-Perú"
 FUENTES = [
@@ -41,6 +41,9 @@ class Reporte:
     area: Optional[dict] = None
     nota_area: str = ""
     no_evaluables: int = 0
+    provincia: Optional[str] = None
+    distrito: Optional[str] = None
+    por_provincia: dict = field(default_factory=dict)
     filas_omitidas_pdf: int = 0
     fuentes: list = field(default_factory=lambda: list(FUENTES))
     limitaciones: list = field(default_factory=lambda: list(LIMITACIONES))
@@ -50,20 +53,23 @@ def _codigo(fecha_hora, id_):
     return f"GF-{fecha_hora:%y%m%d}-{id_:04d}"
 
 
-def construir(inicio: date, fin: date, niveles=None, estados=None, estimar_area=False) -> Reporte:
+def construir(inicio: date, fin: date, niveles=None, estados=None, estimar_area=False, provincia=None, distrito=None) -> Reporte:
     niveles = list(niveles or NIVELES)
     estados = list(estados or ESTADO_ETIQUETA)
     df = _query(
         "SELECT a.id, a.nivel, a.puntaje, a.estado, a.ndvi, a.ndwi, a.nbr, a.en_anp, "
-        "f.fecha_hora, f.frp, f.fuente, ST_Y(f.geom) AS lat, ST_X(f.geom) AS lon "
-        "FROM alertas a JOIN focos_calor f ON f.id = a.foco_id "
-        "WHERE f.fecha_hora >= %s AND f.fecha_hora < %s AND a.nivel = ANY(%s) AND a.estado = ANY(%s) "
+        "f.fecha_hora, f.frp, f.fuente, ST_Y(f.geom) AS lat, ST_X(f.geom) AS lon, zz.provincia, zz.distrito "
+        "FROM alertas a JOIN focos_calor f ON f.id = a.foco_id " + ZONA_JOIN +
+        "WHERE f.fecha_hora >= %s AND f.fecha_hora < %s AND a.nivel = ANY(%s) AND a.estado = ANY(%s) " + ZONA_FILTRO +
         "ORDER BY f.fecha_hora DESC, a.id DESC",
-        (inicio, fin + timedelta(days=1), niveles, estados),
+        (inicio, fin + timedelta(days=1), niveles, estados, *_zona_params(provincia, distrito)),
     )
     if not df.empty:
         df["codigo"] = [_codigo(r.fecha_hora, r.id) for r in df.itertuples()]
         df["estado_txt"] = df["estado"].map(ESTADO_ETIQUETA)
+        df["provincia"] = df["provincia"].fillna("Franja de 5 km")
+        df["distrito"] = df["distrito"].fillna("")
+    por_provincia = df.groupby("provincia").size().sort_values(ascending=False).to_dict() if not df.empty else {}
     por_nivel = {n: int((df["nivel"] == n).sum()) for n in NIVELES} if not df.empty else {n: 0 for n in NIVELES}
     por_estado = (
         {ESTADO_ETIQUETA[e]: int((df["estado"] == e).sum()) for e in ESTADO_ETIQUETA} if not df.empty
@@ -77,6 +83,7 @@ def construir(inicio: date, fin: date, niveles=None, estados=None, estimar_area=
     rep = Reporte(
         inicio=inicio, fin=fin, niveles=niveles, estados=estados, generado=datetime.now(timezone.utc),
         df=df, total=len(df), por_nivel=por_nivel, por_estado=por_estado, no_evaluables=int(sin_eval["n"].iloc[0]),
+        provincia=provincia, distrito=distrito, por_provincia={k: int(v) for k, v in por_provincia.items()},
     )
     if estimar_area:
         rep.area, rep.nota_area = _estimar_area(df, inicio, fin)
@@ -107,6 +114,7 @@ def _estimar_area(df, inicio, fin):
 
 COLUMNAS_CSV = [
     ("codigo", "codigo"), ("nivel", "nivel_riesgo"), ("estado_txt", "estado"), ("fecha_hora", "detectado_utc"),
+    ("provincia", "provincia"), ("distrito", "distrito"),
     ("lat", "latitud"), ("lon", "longitud"), ("frp", "frp_mw"), ("ndvi", "ndvi"), ("ndwi", "ndwi"),
     ("nbr", "nbr"), ("en_anp", "en_area_protegida"), ("puntaje", "puntaje"), ("fuente", "fuente_foco"),
 ]
@@ -117,11 +125,13 @@ def _resumen_texto(rep: Reporte):
         TITULO,
         f"Generado (UTC): {rep.generado:%Y-%m-%d %H:%M}",
         f"Periodo consultado: {rep.inicio:%Y-%m-%d} a {rep.fin:%Y-%m-%d}",
+        "Territorio: " + (rep.distrito or rep.provincia or "toda la región Ucayali"),
         "Niveles: " + ", ".join(rep.niveles),
         "Estados: " + ", ".join(ESTADO_ETIQUETA[e] for e in rep.estados),
         f"Total de incidentes: {rep.total}",
         "Por nivel: " + ", ".join(f"{n}={rep.por_nivel[n]}" for n in NIVELES),
         "Por estado: " + ", ".join(f"{k}={v}" for k, v in rep.por_estado.items()),
+        "Por provincia: " + (", ".join(f"{k}={v}" for k, v in rep.por_provincia.items()) or "sin incidentes"),
         f"Focos no evaluables en el periodo (sobre agua o sin imágenes válidas; no son un nivel de riesgo): {rep.no_evaluables}",
     ]
     if rep.area is not None:
@@ -191,6 +201,7 @@ def a_pdf(rep: Reporte) -> bytes:
     meta = [
         ["Fecha de generación (UTC)", f"{rep.generado:%Y-%m-%d %H:%M}"],
         ["Periodo consultado", f"{rep.inicio:%Y-%m-%d} a {rep.fin:%Y-%m-%d}"],
+        ["Territorio", rep.distrito or rep.provincia or "Toda la región Ucayali"],
         ["Niveles incluidos", ", ".join(rep.niveles)],
         ["Estados incluidos", ", ".join(ESTADO_ETIQUETA[e] for e in rep.estados)],
     ]
@@ -214,6 +225,13 @@ def a_pdf(rep: Reporte) -> bytes:
                             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f3f6f1")),
                             ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#d5ddd5"))]))
     h.append(te)
+    if rep.por_provincia:
+        h.append(Spacer(1, 6))
+        tp = Table([["Provincia"] + list(rep.por_provincia), ["Incidentes"] + [str(v) for v in rep.por_provincia.values()]])
+        tp.setStyle(TableStyle([("FONTSIZE", (0, 0), (-1, -1), 9), ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+                                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f3f6f1")),
+                                ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#d5ddd5"))]))
+        h.append(tp)
     h.append(Paragraph(
         f"Focos no evaluables en el periodo (sobre agua o sin imágenes Sentinel-2 válidas; no son un nivel de riesgo): "
         f"{rep.no_evaluables}", chico))
