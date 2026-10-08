@@ -22,6 +22,7 @@ st.logo(str(Path(__file__).resolve().parent / "logo.svg"), size="large")
 TODAS = {
     "centro": st.Page("views/centro.py", title="Centro de operaciones", url_path="centro", default=True),
     "mapa": st.Page("views/mapa.py", title="Mapa visor", url_path="mapa"),
+    "zonas": st.Page("views/zonas.py", title="Zonas en riesgo", url_path="zonas"),
     "incidentes": st.Page("views/incidentes.py", title="Incidentes", url_path="incidentes"),
     "validacion": st.Page("views/validacion.py", title="Mis alertas", url_path="validacion"),
     "reportes": st.Page("views/reportes.py", title="Reportes", url_path="reportes"),

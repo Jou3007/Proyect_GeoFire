@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
+from html import escape
 
 import plotly.graph_objects as go
 import streamlit as st
 
 import ui
-from geofire import ciclo
+from geofire import ciclo, zonas
 from geofire import repositorio as repo
 
 ui.inicializar()
@@ -75,5 +76,39 @@ with der:
     st.markdown(
         "<div class='gf-card'><div class='gf-kicker'>Monitoreo en vivo</div>"
         f"<b style='font-family:Space Grotesk;font-size:1.25rem'>Focos por nivel de riesgo</b>{filas}</div>",
+        unsafe_allow_html=True,
+    )
+
+st.write("")
+prov_col, zona_col = st.columns(2)
+with prov_col:
+    pp = repo.por_provincia(horas)
+    filas = "".join(
+        f"<div class='gf-fila'><div><b>{escape(r.provincia)}</b></div><div>"
+        f"<span class='gf-badge' style='background:#d9302522;color:#d93025'>{r.criticas} críticas</span> "
+        f"<span class='gf-badge' style='background:#f08a2422;color:#f08a24'>{r.altas} altas</span></div></div>"
+        for r in pp.itertuples()
+    ) or "<div class='gf-fila'>Sin alertas Alto o Crítico en este periodo.</div>"
+    st.markdown(
+        "<div class='gf-card'><div class='gf-kicker'>Por provincia</div>"
+        f"<b style='font-family:Space Grotesk,Arial,sans-serif;font-size:1.25rem'>Alertas Alto y Crítico activas</b>{filas}</div>",
+        unsafe_allow_html=True,
+    )
+with zona_col:
+    zz = zonas.ultimas("distrito")
+    if zz.empty:
+        cuerpo = "<div class='gf-fila'>Aún no hay evaluaciones de zona.</div>"
+    else:
+        zz["_o"] = zz["nivel"].map({"CRITICO": 0, "ALTO": 1, "MEDIO": 2, "BAJO": 3}).fillna(9)
+        top = zz.sort_values(["_o", "pct_estres"], ascending=[True, False]).head(5)
+        cuerpo = "".join(
+            f"<div class='gf-fila'><div><b>{escape(r.nombre)}</b> <span style='color:var(--suave);font-size:.78rem'>"
+            f"{escape(r.provincia or '')}</span></div><div>"
+            f"{ui.badge(r.nivel) if r.evaluable else 'No evaluable'}</div></div>"
+            for r in top.itertuples()
+        ) + f"<div style='color:var(--suave);font-size:.75rem;margin-top:.5rem'>Corte de datos: {zz['fecha_corte'].max():%d/%m/%Y}</div>"
+    st.markdown(
+        "<div class='gf-card'><div class='gf-kicker'>Prevención</div>"
+        f"<b style='font-family:Space Grotesk,Arial,sans-serif;font-size:1.25rem'>Zonas con mayor riesgo</b>{cuerpo}</div>",
         unsafe_allow_html=True,
     )

@@ -36,9 +36,12 @@ def _pasos_por_defecto(horas_eval):
             return "omitido (correo no configurado)"
         return enviar_alertas()
 
+    from geofire.zonas import evaluar_si_toca
+
     return [
         ("ingesta", lambda: ingest(days=1)),
         ("evaluacion", lambda: procesar(horas_eval)),
+        ("zonas", evaluar_si_toca),  # evaluacion preventiva por zona: una vez al dia
         ("correo", correo),
     ]
 
