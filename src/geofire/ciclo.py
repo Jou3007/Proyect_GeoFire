@@ -9,6 +9,7 @@ import time
 import traceback
 from datetime import datetime, timezone
 
+from geofire import auditoria
 from geofire.db import get_connection
 
 ESPERAS = (5, 20)  # segundos antes del 2.o y del 3.er intento
@@ -67,10 +68,13 @@ def ejecutar(pasos=None, esperas=ESPERAS, horas_eval=12):
             fallos += 1
             detalle[nombre] = {"ok": False, "error": f"{type(e).__name__}: {e}", "segundos": round(time.time() - t0, 1)}
             print(f"[ciclo] paso '{nombre}' fallo: {traceback.format_exc(limit=2)}")
+            auditoria.registrar(auditoria.ERROR_API, detalle={"paso": nombre, "error": detalle[nombre]["error"][:300]})
     fin = datetime.now(timezone.utc)
     estado = "OK" if fallos == 0 else ("ERROR" if fallos == len(pasos) else "PARCIAL")
     detalle["estado"] = estado
     _registrar(inicio, fin, estado, detalle)
+    resumen = {k: (v.get("resultado") if v.get("ok") else "FALLO") for k, v in detalle.items() if isinstance(v, dict)}
+    auditoria.registrar(auditoria.CICLO, detalle={"estado": estado, "pasos": resumen})
     return detalle
 
 

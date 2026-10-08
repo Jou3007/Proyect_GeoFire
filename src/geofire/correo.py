@@ -5,6 +5,7 @@ from email.message import EmailMessage
 
 from dotenv import load_dotenv
 
+from geofire import auditoria
 from geofire.db import get_connection
 
 load_dotenv()
@@ -62,10 +63,28 @@ def enviar_alertas(dry_run=False, incluir_historicas=False):
             print(msg["Subject"], "\n")
             print(msg.get_content()[:900])
             return len(alertas)
-        with smtplib.SMTP(os.getenv("SMTP_HOST", "smtp.gmail.com"), int(os.getenv("SMTP_PORT", "587")), timeout=30) as s:
-            s.starttls()
-            s.login(remitente, os.environ["SMTP_PASSWORD"])
-            s.send_message(msg)
-        cur.execute("UPDATE alertas SET notificada = TRUE WHERE id = ANY(%s)", ([a[0] for a in alertas],))
-        print(f"Correo enviado a {len(destinatarios)} destinatario(s) con {len(alertas)} alerta(s).")
-        return len(alertas)
+        ids = [a[0] for a in alertas]
+        error = None
+        try:
+            with smtplib.SMTP(os.getenv("SMTP_HOST", "smtp.gmail.com"), int(os.getenv("SMTP_PORT", "587")), timeout=30) as s:
+                s.starttls()
+                s.login(remitente, os.environ["SMTP_PASSWORD"])
+                s.send_message(msg)
+        except Exception as e:  # se registra el fallo y se reintentara en el siguiente ciclo (notificada sigue en FALSE)
+            error = e
+        resultado = "ENVIADO" if error is None else "ERROR"
+        detalle = None if error is None else f"{type(error).__name__}: {error}"[:300]
+        if error is None:
+            cur.execute("UPDATE alertas SET notificada = TRUE WHERE id = ANY(%s)", (ids,))
+        cur.executemany(
+            "INSERT INTO notificaciones (alerta_id, canal, destinatarios, resultado, detalle) VALUES (%s, 'correo', %s, %s, %s)",
+            [(i, destinatarios, resultado, detalle) for i in ids],
+        )
+    auditoria.registrar(
+        auditoria.CORREO_ENVIADO if error is None else auditoria.CORREO_ERROR,
+        detalle={"alertas": len(ids), "destinatarios": len(destinatarios), "error": detalle},
+    )
+    if error is not None:
+        raise error
+    print(f"Correo enviado a {len(destinatarios)} destinatario(s) con {len(alertas)} alerta(s).")
+    return len(alertas)

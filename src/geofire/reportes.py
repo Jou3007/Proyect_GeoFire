@@ -40,6 +40,7 @@ class Reporte:
     por_estado: dict
     area: Optional[dict] = None
     nota_area: str = ""
+    no_evaluables: int = 0
     filas_omitidas_pdf: int = 0
     fuentes: list = field(default_factory=lambda: list(FUENTES))
     limitaciones: list = field(default_factory=lambda: list(LIMITACIONES))
@@ -68,9 +69,14 @@ def construir(inicio: date, fin: date, niveles=None, estados=None, estimar_area=
         {ESTADO_ETIQUETA[e]: int((df["estado"] == e).sum()) for e in ESTADO_ETIQUETA} if not df.empty
         else {ESTADO_ETIQUETA[e]: 0 for e in ESTADO_ETIQUETA}
     )
+    sin_eval = _query(
+        "SELECT count(*) AS n FROM alertas a JOIN focos_calor f ON f.id = a.foco_id "
+        "WHERE NOT a.evaluable AND f.fecha_hora >= %s AND f.fecha_hora < %s",
+        (inicio, fin + timedelta(days=1)),
+    )
     rep = Reporte(
         inicio=inicio, fin=fin, niveles=niveles, estados=estados, generado=datetime.now(timezone.utc),
-        df=df, total=len(df), por_nivel=por_nivel, por_estado=por_estado,
+        df=df, total=len(df), por_nivel=por_nivel, por_estado=por_estado, no_evaluables=int(sin_eval["n"].iloc[0]),
     )
     if estimar_area:
         rep.area, rep.nota_area = _estimar_area(df, inicio, fin)
@@ -116,6 +122,7 @@ def _resumen_texto(rep: Reporte):
         f"Total de incidentes: {rep.total}",
         "Por nivel: " + ", ".join(f"{n}={rep.por_nivel[n]}" for n in NIVELES),
         "Por estado: " + ", ".join(f"{k}={v}" for k, v in rep.por_estado.items()),
+        f"Focos no evaluables en el periodo (sobre agua o sin imágenes válidas; no son un nivel de riesgo): {rep.no_evaluables}",
     ]
     if rep.area is not None:
         lineas.append(
@@ -207,6 +214,9 @@ def a_pdf(rep: Reporte) -> bytes:
                             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f3f6f1")),
                             ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#d5ddd5"))]))
     h.append(te)
+    h.append(Paragraph(
+        f"Focos no evaluables en el periodo (sobre agua o sin imágenes Sentinel-2 válidas; no son un nivel de riesgo): "
+        f"{rep.no_evaluables}", chico))
 
     h.append(Paragraph("Área afectada", h2))
     if rep.area is not None:

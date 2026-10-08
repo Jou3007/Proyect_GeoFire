@@ -123,3 +123,17 @@ docker compose run --rm app python scripts/reevaluar.py              # recalcula
 ```
 Fuente: OpenStreetMap (ODbL), no el registro oficial de comunidades nativas. Los tipos que cuentan para la regla se
 configuran en `config/riesgo.json` (`tipos_asentamiento`); tras cambiarlos, vuelve a correr `reevaluar.py`.
+
+## Auditoria y trazabilidad (RNF-08, AC-03.1, AC-06.2, AC-06.3, AC-09.1)
+
+```bash
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/006_auditoria_trazabilidad.sql   # una vez
+```
+- `log_auditoria`: historial **inmutable** (un trigger impide `UPDATE` y `DELETE`) de accesos, bloqueos, validaciones,
+  altas y cambios de usuarios, correos y errores de APIs. Se consulta en la pantalla **Auditoria** (solo administrador).
+- Cada alerta guarda su fecha de corte, la version de `config/riesgo.json` (huella `config_version`) y el lote de
+  imagenes Sentinel-2 usadas (`lotes_imagenes`). Sin imagenes validas el foco queda **No evaluable** (no es un nivel de riesgo).
+- `notificaciones`: fecha, destinatarios y resultado (ENVIADO/ERROR) de cada correo; un fallo se reintenta en el ciclo siguiente.
+- Contrasenas con **bcrypt** (las antiguas PBKDF2 se migran solas al iniciar sesion).
+- Validar una alerta exige justificacion (>= 10 caracteres); confirmarla exige foto o referencia de evidencia. Las fotos se
+  vuelven a guardar con Pillow (se quitan los metadatos EXIF).

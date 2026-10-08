@@ -9,6 +9,7 @@ from geofire import repositorio as repo
 ui.inicializar()
 usuario = st.session_state.get("usuario")
 if not usuario or "reportes" not in seguridad.PERMISOS.get(usuario["rol"], ()):
+    seguridad.acceso_denegado("reportes", usuario)
     st.error("Acceso denegado: los reportes son para la autoridad regional y los administradores.")
     st.stop()
 

@@ -1,13 +1,16 @@
+from html import escape
 from pathlib import Path
 
 import streamlit as st
 
 import ui
+from geofire import seguridad
 from geofire import validacion as val
 
 ui.inicializar()
 usuario = st.session_state.get("usuario")
 if not usuario or usuario["rol"] not in val.ROLES_VALIDADORES:
+    seguridad.acceso_denegado("validacion", usuario)
     st.error("Acceso denegado: solo guardaparques y autoridad regional validan alertas (RN-03).")
     st.stop()
 
@@ -55,11 +58,16 @@ else:
             ["CONFIRMADA", "FALSA_ALARMA"],
             format_func={"CONFIRMADA": "🔥 Incendio confirmado", "FALSA_ALARMA": "✅ Falsa alarma"}.get,
         )
-        comentario = st.text_area("Comentario (opcional)", max_chars=1000, placeholder="Ej.: quema agrícola controlada, humo visible…")
-        foto = st.file_uploader("Foto (opcional, JPG o PNG, máx. 5 MB)", type=["jpg", "jpeg", "png"])
+        comentario = st.text_area(
+            f"Justificación (obligatoria, mínimo {val.MIN_JUSTIFICACION} caracteres)", max_chars=1000,
+            placeholder="Ej.: quema agrícola controlada, humo visible desde el camino…",
+        )
+        st.caption("Para **confirmar** un incendio adjunta una foto o una referencia de evidencia (código de parte, enlace…).")
+        foto = st.file_uploader("Foto (JPG o PNG, máx. 5 MB)", type=["jpg", "jpeg", "png"])
+        referencia = st.text_input("Referencia de evidencia (opcional si adjuntas foto)", max_chars=300)
         if st.form_submit_button("Enviar validación", type="primary", use_container_width=True):
             try:
-                val.validar(int(elegida), usuario, estado, comentario, foto.getvalue() if foto else None)
+                val.validar(int(elegida), usuario, estado, comentario, foto.getvalue() if foto else None, referencia)
                 st.session_state["validacion_ok"] = True
                 st.rerun()
             except (ValueError, PermissionError) as e:
@@ -74,7 +82,8 @@ for r in hist.itertuples():
     etiqueta = "🔥 Confirmada" if r.estado == "CONFIRMADA" else "✅ Falsa alarma"
     st.markdown(
         f"**{etiqueta}** · {r.lat:.3f}, {r.lon:.3f} · {r.validado_en:%d/%m %H:%M}  \n"
-        f"<span style='color:#6b7a72;font-size:.85rem'>{r.comentario or 'Sin comentario'}</span>",
+        f"<span style='color:#6b7a72;font-size:.85rem'>{escape(r.comentario or 'Sin comentario')}"
+        f"{' · evidencia: ' + escape(r.referencia_evidencia) if r.referencia_evidencia else ''}</span>",
         unsafe_allow_html=True,
     )
     ruta = Path(__file__).resolve().parents[2] / (r.foto_url or "")

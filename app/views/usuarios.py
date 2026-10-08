@@ -1,3 +1,5 @@
+from html import escape
+
 import streamlit as st
 
 import ui
@@ -6,6 +8,7 @@ from geofire import seguridad
 ui.inicializar()
 usuario = st.session_state.get("usuario")
 if not usuario or "usuarios" not in seguridad.PERMISOS.get(usuario["rol"], ()):
+    seguridad.acceso_denegado("usuarios", usuario)
     st.error("Acceso denegado: esta página es solo para administradores.")
     st.stop()
 
@@ -23,7 +26,7 @@ with st.expander("➕ Nuevo usuario", expanded=False):
         password = c4.text_input("Contraseña inicial", type="password")
         if st.form_submit_button("Crear usuario", type="primary"):
             try:
-                seguridad.crear_usuario(email, nombre, rol, password)
+                seguridad.crear_usuario(email, nombre, rol, password, actor=usuario)
                 st.success(f"Usuario {email} creado.")
                 st.rerun()
             except ValueError as e:
@@ -36,18 +39,22 @@ for u in lista:
     color = "#d93025" if estado != "Activa" else "#3f9d5b"
     acceso = f"{u['ultimo_acceso']:%d/%m/%Y %H:%M}" if u["ultimo_acceso"] else "nunca"
     a, b, c, d = st.columns([3, 1.5, 1, 1.5])
-    a.markdown(f"**{u['nombre'] or u['email']}**  \n<span style='color:#6b7a72;font-size:.8rem'>{u['email']} · último acceso: {acceso}</span>", unsafe_allow_html=True)
+    a.markdown(
+        f"<b>{escape(u['nombre'] or u['email'])}</b><br>"
+        f"<span style='color:#6b7a72;font-size:.8rem'>{escape(u['email'])} · último acceso: {acceso}</span>",
+        unsafe_allow_html=True,
+    )
     b.markdown(ROL_TXT[u["rol"]])
     c.markdown(f"<span class='gf-badge' style='background:{color}22;color:{color}'>{estado}</span>", unsafe_allow_html=True)
     es_yo = u["id"] == usuario["id"]
     with d:
         if u["bloqueado"]:
             if st.button("Desbloquear", key=f"d{u['id']}"):
-                seguridad.desbloquear(u["id"])
+                seguridad.desbloquear(u["id"], actor=usuario)
                 st.rerun()
         elif not es_yo:
             etiqueta = "Desactivar" if u["activo"] else "Activar"
             if st.button(etiqueta, key=f"a{u['id']}"):
-                seguridad.set_activo(u["id"], not u["activo"])
+                seguridad.set_activo(u["id"], not u["activo"], actor=usuario)
                 st.rerun()
     st.divider()

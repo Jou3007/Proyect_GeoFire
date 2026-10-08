@@ -35,12 +35,22 @@ def alertas(horas, niveles=None):
 def resumen(horas):
     df = _query(
         "SELECT a.nivel, count(*) AS n FROM alertas a JOIN focos_calor f ON f.id = a.foco_id "
-        "WHERE f.fecha_hora >= now() - make_interval(hours => %s) GROUP BY 1",
+        "WHERE f.fecha_hora >= now() - make_interval(hours => %s) AND a.nivel IS NOT NULL GROUP BY 1",
         (horas,),
     )
     conteo = {n: 0 for n in NIVELES}
     conteo.update(dict(zip(df["nivel"], df["n"])))
     return conteo
+
+
+def no_evaluables(horas):
+    """Focos sin evaluar: {'AGUA': n, 'SIN_IMAGENES': n}. No son un quinto nivel de riesgo (AC-06.1)."""
+    df = _query(
+        "SELECT a.motivo, count(*) AS n FROM alertas a JOIN focos_calor f ON f.id = a.foco_id "
+        "WHERE NOT a.evaluable AND f.fecha_hora >= now() - make_interval(hours => %s) GROUP BY 1",
+        (horas,),
+    )
+    return dict(zip(df["motivo"], df["n"]))
 
 
 def focos_por_dia(dias=30):

@@ -83,13 +83,15 @@ def stats_punto(lon, lat, radio_m=1000, days=30):
 WDPA = "WCMC/WDPA/current/polygons"
 
 
-def indices_para_puntos(puntos, radio_m=500, days=30):
+def indices_para_puntos(puntos, radio_m=500, days=30, con_meta=False):
     """Indices medios y pertenencia a ANP para varios puntos en una sola consulta.
 
     puntos: lista de (id, lon, lat). Devuelve {id: {"NDVI", "NDWI", "NBR", "en_anp"}}.
+    Con con_meta=True devuelve (resultado, meta) donde meta lista las imagenes Sentinel-2 usadas (AC-03.1):
+    {"coleccion", "desde", "hasta", "imagenes": [id, ...]}.
     """
     if not puntos:
-        return {}
+        return ({}, {"coleccion": S2, "desde": None, "hasta": None, "imagenes": []}) if con_meta else {}
     feats = [
         ee.Feature(ee.Geometry.Point([lon, lat]).buffer(radio_m), {"pid": pid})
         for pid, lon, lat in puntos
@@ -102,8 +104,11 @@ def indices_para_puntos(puntos, radio_m=500, days=30):
     anp = ee.FeatureCollection(WDPA).filter(ee.Filter.eq("ISO3", "PER")).filterBounds(fc.geometry().bounds())
     out = out.map(lambda f: f.set("en_anp", anp.filterBounds(f.geometry()).size().gt(0)))
 
+    # Una sola consulta devuelve los valores por punto y los ids de las imagenes usadas.
+    # (Una FeatureCollection dentro de un Dictionary solo devolveria sus metadatos: se pasa como lista.)
+    info = ee.Dictionary({"features": out.toList(out.size()), "ids": col.aggregate_array("system:index")}).getInfo()
     res = {}
-    for f in out.getInfo()["features"]:
+    for f in info["features"]:
         p = f["properties"]
         res[p["pid"]] = {
             "NDVI": p.get("NDVI"),
@@ -111,7 +116,11 @@ def indices_para_puntos(puntos, radio_m=500, days=30):
             "NBR": p.get("NBR"),
             "en_anp": bool(p.get("en_anp")),
         }
-    return res
+    if not con_meta:
+        return res
+    hasta = date.today()
+    meta = {"coleccion": S2, "desde": hasta - timedelta(days=days), "hasta": hasta, "imagenes": sorted(info["ids"])}
+    return res, meta
 
 
 UMBRAL_DNBR = 0.27  # USGS: dNBR >= 0.27 = quemado de severidad moderada-baja o mayor
