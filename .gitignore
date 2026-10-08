@@ -17,3 +17,9 @@ Thumbs.db
 
 # Fotos de validacion en campo (datos de usuarios, no van a git)
 data/fotos/
+
+# Secretos de Streamlit Cloud (la plantilla .example si va al repo)
+.streamlit/secrets.toml
+
+# Temporales de las mediciones
+data/_*

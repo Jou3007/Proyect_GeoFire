@@ -5,9 +5,6 @@ Toda revision exige una justificacion; confirmar un incendio exige ademas eviden
 El nivel de riesgo no cambia: se guarda aparte el estado de validacion.
 """
 import io
-from datetime import datetime
-from pathlib import Path
-
 from PIL import Image, UnidentifiedImageError
 
 from geofire import auditoria
@@ -16,7 +13,6 @@ from geofire.repositorio import ZONA_ID_FILTRO, _query
 
 ROLES_VALIDADORES = ("guardaparque", "autoridad_regional")
 ESTADOS = ("CONFIRMADA", "FALSA_ALARMA")
-DIR_FOTOS = Path(__file__).resolve().parents[2] / "data" / "fotos"
 MAX_FOTO_BYTES = 5 * 1024 * 1024
 MAX_LADO_PX = 2000
 MIN_JUSTIFICACION = 10
@@ -59,9 +55,18 @@ def pendientes(horas=72, zona_id=None):
     )
 
 
+def foto(incidente_id):
+    """Bytes de la foto de un incidente (ya reprocesada) o None. Se guarda en la base: el disco de la nube es efimero."""
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT foto_bytes FROM incidentes WHERE id = %s", (incidente_id,))
+        fila = cur.fetchone()
+        return bytes(fila[0]) if fila and fila[0] is not None else None
+
+
 def validaciones_recientes(usuario_id=None, limite=10):
     return _query(
-        "SELECT i.id, i.alerta_id, i.estado, i.comentario, i.foto_url, i.referencia_evidencia, i.validado_en, "
+        "SELECT i.id, i.alerta_id, i.estado, i.comentario, (i.foto_bytes IS NOT NULL) AS tiene_foto, "
+        "i.referencia_evidencia, i.validado_en, "
         "u.nombre AS validador, a.nivel, ST_Y(f.geom) AS lat, ST_X(f.geom) AS lon "
         "FROM incidentes i JOIN alertas a ON a.id = i.alerta_id JOIN focos_calor f ON f.id = a.foco_id "
         "LEFT JOIN usuarios u ON u.id = i.usuario_id "
@@ -113,16 +118,10 @@ def validar(alerta_id, usuario, estado, comentario="", foto=None, referencia_evi
             raise ValueError("La alerta no existe.")
         if fila[0] in ESTADOS:
             raise ValueError("Esta alerta ya fue validada por otra persona.")
-        ruta_foto = None
-        if foto_limpia:
-            DIR_FOTOS.mkdir(parents=True, exist_ok=True)
-            nombre = f"alerta-{alerta_id}-{datetime.now():%Y%m%d%H%M%S}.{ext}"
-            (DIR_FOTOS / nombre).write_bytes(foto_limpia)
-            ruta_foto = f"data/fotos/{nombre}"
         cur.execute(
-            "INSERT INTO incidentes (alerta_id, estado, comentario, foto_url, referencia_evidencia, usuario_id, validado_en) "
-            "VALUES (%s, %s, %s, %s, %s, %s, now())",
-            (alerta_id, estado, comentario, ruta_foto, referencia or None, usuario["id"]),
+            "INSERT INTO incidentes (alerta_id, estado, comentario, foto_bytes, foto_tipo, referencia_evidencia, usuario_id, validado_en) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, now())",
+            (alerta_id, estado, comentario, foto_limpia, ext, referencia or None, usuario["id"]),
         )
         cur.execute("UPDATE alertas SET estado = %s WHERE id = %s", (estado, alerta_id))
     auditoria.registrar(

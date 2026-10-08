@@ -4,14 +4,14 @@ from html import escape
 import plotly.graph_objects as go
 import streamlit as st
 
+import cache
 import ui
-from geofire import ciclo, zonas
 from geofire import repositorio as repo
 
 ui.inicializar()
 ui.encabezado("Centro de operaciones", "Centro de operaciones", "Pulso del territorio de Ucayali en tiempo casi real.")
 
-ultima = ciclo.ultima_ejecucion()
+ultima = cache.ultima_ejecucion()
 if ultima:
     hace = (datetime.now(timezone.utc) - ultima[0]).total_seconds() / 3600
     ok = ultima[1] == "OK" and hace < 4
@@ -29,8 +29,8 @@ horas = st.radio(
     "Ventana", [6, 24, 48, 72], index=3, horizontal=True,
     format_func=lambda h: f"{h} h", label_visibility="collapsed",
 )
-res = repo.resumen(horas)
-tot = repo.totales()
+res = cache.resumen(horas)
+tot = cache.totales()
 activas = res["ALTO"] + res["CRITICO"]
 
 c1, c2, c3, c4 = st.columns(4)
@@ -43,7 +43,7 @@ with c3:
 with c4:
     ui.tarjeta("Focos en base historica", f"{int(tot['focos']):,}", f"desde {tot['desde']:%d/%m/%Y}")
 
-sin_eval = repo.no_evaluables(horas)
+sin_eval = cache.no_evaluables(horas)
 if sin_eval:
     detalle = ", ".join(
         f"{n} {'sobre agua (NDWI)' if m == 'AGUA' else 'sin imágenes Sentinel-2 válidas'}" for m, n in sin_eval.items()
@@ -58,7 +58,7 @@ with izq:
         "<b style='font-family:Space Grotesk;font-size:1.25rem'>Focos de calor detectados</b>",
         unsafe_allow_html=True,
     )
-    serie = repo.focos_por_dia(30)
+    serie = cache.focos_por_dia(30)
     fig = go.Figure(go.Bar(x=serie["dia"], y=serie["focos"], marker_color="#2f7d63"))
     fig.update_layout(
         height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor="rgba(0,0,0,0)",
@@ -82,7 +82,7 @@ with der:
 st.write("")
 prov_col, zona_col = st.columns(2)
 with prov_col:
-    pp = repo.por_provincia(horas)
+    pp = cache.por_provincia(horas)
     filas = "".join(
         f"<div class='gf-fila'><div><b>{escape(r.provincia)}</b></div><div>"
         f"<span class='gf-badge' style='background:#d9302522;color:#a8201a'>{r.criticas} críticas</span> "
@@ -95,7 +95,7 @@ with prov_col:
         unsafe_allow_html=True,
     )
 with zona_col:
-    zz = zonas.ultimas("distrito")
+    zz = cache.zonas_ultimas("distrito")
     if zz.empty:
         cuerpo = "<div class='gf-fila'>Aún no hay evaluaciones de zona.</div>"
     else:

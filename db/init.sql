@@ -202,3 +202,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_fuentes_conocidas_osm ON fuentes_calor_cono
 
 -- Zona (distrito o provincia) a la que se limita el guardaparque
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS zona_id INT REFERENCES zonas(id);
+-- Resultados reproducibles del backtesting (cap. XII, Sprint 6)
+CREATE TABLE IF NOT EXISTS backtesting (
+    id         BIGSERIAL PRIMARY KEY,
+    creado_en  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resultado  JSONB NOT NULL
+);
+-- Las fotos de validacion se guardan en la base de datos: el disco de Streamlit Cloud se borra al reiniciar.
+ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS foto_bytes BYTEA;
+ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS foto_tipo TEXT;

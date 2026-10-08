@@ -3,6 +3,7 @@ from html import escape
 
 import streamlit as st
 
+import cache
 import ui
 from geofire import reportes, seguridad
 from geofire import repositorio as repo
@@ -24,9 +25,9 @@ estados = c3.multiselect(
     "Estado", list(repo.ESTADO_ETIQUETA), default=list(repo.ESTADO_ETIQUETA), format_func=repo.ESTADO_ETIQUETA.get
 )
 t1, t2, _ = st.columns([1, 1, 2])
-provincia = t1.selectbox("Provincia", ["Todas"] + repo.provincias())
+provincia = t1.selectbox("Provincia", ["Todas"] + cache.provincias())
 prov = None if provincia == "Todas" else provincia
-distrito = t2.selectbox("Distrito", ["Todos"] + repo.distritos(prov))
+distrito = t2.selectbox("Distrito", ["Todos"] + cache.distritos(prov))
 dist = None if distrito == "Todos" else distrito
 estimar = st.checkbox("Estimar el área afectada con NBR (consulta a Earth Engine, puede tardar hasta 40 s)", value=False)
 

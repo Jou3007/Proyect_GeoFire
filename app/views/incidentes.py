@@ -2,6 +2,7 @@ from html import escape
 
 import streamlit as st
 
+import cache
 import ui
 from geofire import geojson, seguridad
 from geofire import repositorio as repo
@@ -15,9 +16,9 @@ nivel = c2.selectbox("Nivel", ["Alto y Crítico", "Todos"] + [ui.ETIQUETA[n] for
 estado = c3.selectbox("Estado", ["Todos"] + sorted(set(repo.ESTADO_ETIQUETA.values())))
 dias = c4.selectbox("Periodo", [3, 7, 30], format_func=lambda d: f"Últimos {d} días")
 p1, p2, _ = st.columns([1, 1, 2])
-provincia = p1.selectbox("Provincia", ["Todas"] + repo.provincias())
+provincia = p1.selectbox("Provincia", ["Todas"] + cache.provincias())
 prov = None if provincia == "Todas" else provincia
-distrito = p2.selectbox("Distrito", ["Todos"] + repo.distritos(prov))
+distrito = p2.selectbox("Distrito", ["Todos"] + cache.distritos(prov))
 dist = None if distrito == "Todos" else distrito
 
 niveles = {"Alto y Crítico": ["ALTO", "CRITICO"], "Todos": repo.NIVELES}.get(
@@ -27,7 +28,7 @@ restringido, zona_id = seguridad.alcance(st.session_state["usuario"])
 if restringido and not zona_id:
     st.warning("Aún no tienes una zona asignada. Pídele al administrador que te asigne un distrito o una provincia.")
     st.stop()
-df = repo.alertas(dias * 24, niveles, prov, dist, zona_id)
+df = cache.alertas(dias * 24, niveles, prov, dist, zona_id)
 if not df.empty:
     df["codigo"] = df.apply(lambda r: f"GF-{r.fecha_hora:%y%m%d}-{r.id:04d}", axis=1)
     df["estado_txt"] = df["estado"].map(repo.ESTADO_ETIQUETA)
