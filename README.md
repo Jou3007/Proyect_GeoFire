@@ -165,3 +165,18 @@ docker compose run --rm app python scripts/load_fuentes_conocidas.py   # aserrad
 - **Geocercas** (administrador): sube el GeoJSON de Ucayali (se valida topologia y area) y carga fuentes conocidas (GeoJSON/CSV).
 - **GeoJSON** (RNF-07): incidentes, reportes y zonas se exportan en RFC 7946.
 - **Alto contraste** (RNF-05): interruptor en el menu lateral; contraste medido (WCAG AA en modo normal, AAA en alto contraste).
+
+## Validacion final: backtesting, casos de prueba, rendimiento y despliegue
+
+```bash
+docker compose run --rm app python scripts/backtesting.py 500                 # docs/backtesting.md (~15 min)
+docker compose run --rm app sh -c "pip install -q -r requirements-dev.txt && python scripts/evidencia_casos.py"   # docs/casos_de_prueba.md
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/010_backtesting.sql   # una vez
+docker compose exec -T db psql -U geofire -d geofire < db/migrations/011_foto_en_base.sql  # una vez
+```
+- **Backtesting** (`docs/backtesting.md`): mide si el NDVI de 15-45 dias antes distingue donde luego hubo focos (AUC, sensibilidad, falsas alarmas).
+- **Casos de prueba** (`docs/casos_de_prueba.md`): CP-01 a CP-19 con datos de `tests/datos/`, resultado y fecha.
+- **Rendimiento** (`docs/pruebas_rendimiento.md`): prueba de carga con navegador real (`scripts/prueba_carga.py`) y Lighthouse.
+- **Despliegue en la nube**: `docs/despliegue_nube.md` (Neon + Streamlit Cloud + GitHub Actions). `scripts/instalar_nube.py` prepara la base
+  remota y `scripts/salud.py` comprueba base, Earth Engine, NASA FIRMS, correo y ciclo.
+- Las fotos de validacion se guardan en la base de datos (columna `incidentes.foto_bytes`), no en disco.

@@ -1,5 +1,4 @@
 from html import escape
-from pathlib import Path
 
 import streamlit as st
 
@@ -90,6 +89,5 @@ for r in hist.itertuples():
         f"{' · evidencia: ' + escape(r.referencia_evidencia) if r.referencia_evidencia else ''}</span>",
         unsafe_allow_html=True,
     )
-    ruta = Path(__file__).resolve().parents[2] / (r.foto_url or "")
-    if r.foto_url and ruta.exists():
-        st.image(str(ruta), width=160)
+    if r.tiene_foto:
+        st.image(val.foto(int(r.id)), width=160)

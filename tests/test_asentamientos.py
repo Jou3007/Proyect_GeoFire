@@ -46,7 +46,8 @@ class TestAsentamientos(unittest.TestCase):
     def test_filtro_por_tipo(self):
         with get_connection() as conn, conn.cursor() as cur:
             solo_pueblos = distancias_km(cur, [self.foco], tipos=["village", "town", "city"])
-        self.assertGreater(solo_pueblos[self.foco], 1000)  # el caserio no cuenta: el pueblo mas cercano esta en Ucayali
+        # el caserio no cuenta: o no hay pueblos en la base (CI) o el mas cercano esta lejos (Ucayali, a >1000 km)
+        self.assertGreater(solo_pueblos.get(self.foco, 10 ** 9), 1000)
 
     def test_cercania_y_ndvi_seco_pasan_a_critico_y_se_renotifica(self):
         aid = self._alerta(ndvi=0.30, en_anp=False)  # RN-02.3 (NDVI) ya cumplida -> era ALTO

@@ -222,7 +222,10 @@ class TestGeocercas(unittest.TestCase):
         """Reemplaza la region por otra y la restaura: verifica el flujo sin dejar cambios."""
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute("SELECT ST_AsGeoJSON(geom) FROM zonas WHERE tipo = 'region'")
-            original = json.loads(cur.fetchone()[0])
+            fila = cur.fetchone()
+            if not fila:
+                self.skipTest("la base no tiene el limite regional cargado (scripts/load_limite.py)")
+            original = json.loads(fila[0])
             cur.execute("SELECT count(*) FROM zonas WHERE tipo IN ('region', 'geocerca')")
             antes = cur.fetchone()[0]
         try:
@@ -292,7 +295,8 @@ class TestContraste(unittest.TestCase):
 
     def test_etiquetas_de_riesgo_legibles_en_modo_normal(self):
         import sys
-        sys.path.insert(0, "/app/app")
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
         import ui
         for nivel, color in ui.COLOR.items():
             fondo = "#" + "".join(f"{int(int(color[i:i + 2], 16) * 0.133 + 255 * 0.867):02x}" for i in (1, 3, 5))  # color al 13 % sobre blanco

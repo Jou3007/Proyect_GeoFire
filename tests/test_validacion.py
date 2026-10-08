@@ -1,7 +1,6 @@
 import io
 import secrets
 import unittest
-from pathlib import Path
 
 from PIL import Image
 
@@ -42,10 +41,6 @@ class TestValidacion(unittest.TestCase):
 
     def tearDown(self):
         with get_connection() as conn, conn.cursor() as cur:
-            cur.execute("SELECT foto_url FROM incidentes WHERE alerta_id = %s", (self.alerta,))
-            for (ruta,) in cur.fetchall():
-                if ruta:
-                    Path(val.DIR_FOTOS.parents[1], ruta).unlink(missing_ok=True)
             cur.execute("DELETE FROM incidentes WHERE alerta_id = %s", (self.alerta,))
             cur.execute("DELETE FROM alertas WHERE id = %s", (self.alerta,))
             cur.execute("DELETE FROM focos_calor WHERE id = %s", (self.foco,))
@@ -94,12 +89,20 @@ class TestValidacion(unittest.TestCase):
     def test_foto_se_guarda_reprocesada(self):
         val.validar(self.alerta, self.usuarios["guardaparque"], "CONFIRMADA", JUSTIF, foto=imagen_bytes())
         df = val.validaciones_recientes(self.usuarios["guardaparque"]["id"])
-        ruta = Path(val.DIR_FOTOS.parents[1], df.iloc[0]["foto_url"])
-        self.assertTrue(ruta.exists())
-        self.assertEqual(Image.open(ruta).format, "JPEG")
+        self.assertTrue(df.iloc[0]["tiene_foto"])
+        guardada = val.foto(int(df.iloc[0]["id"]))  # la foto vive en la base de datos, no en el disco
+        self.assertEqual(Image.open(io.BytesIO(guardada)).format, "JPEG")
 
     def test_foto_png_valida(self):
         val.validar(self.alerta, self.usuarios["guardaparque"], "CONFIRMADA", JUSTIF, foto=imagen_bytes("PNG"))
+        df = val.validaciones_recientes(self.usuarios["guardaparque"]["id"])
+        self.assertEqual(Image.open(io.BytesIO(val.foto(int(df.iloc[0]["id"])))).format, "PNG")
+
+    def test_sin_foto_no_hay_bytes(self):
+        val.validar(self.alerta, self.usuarios["guardaparque"], "FALSA_ALARMA", JUSTIF)
+        df = val.validaciones_recientes(self.usuarios["guardaparque"]["id"])
+        self.assertFalse(df.iloc[0]["tiene_foto"])
+        self.assertIsNone(val.foto(int(df.iloc[0]["id"])))
 
     def test_se_quitan_los_metadatos_exif(self):
         original = imagen_bytes(exif=True)

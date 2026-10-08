@@ -7,7 +7,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import streamlit as st
 
-from geofire import seguridad
+import secretos
+
+secretos.cargar()  # en Streamlit Cloud: pasa st.secrets a variables de entorno antes de usar la base o Earth Engine
+
+from geofire import seguridad  # noqa: E402
 
 st.set_page_config(page_title="GeoFire Peru", page_icon="🔥", layout="wide")
 

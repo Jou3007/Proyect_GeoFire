@@ -5,6 +5,7 @@ import folium
 import streamlit as st
 from streamlit_folium import st_folium
 
+import cache
 import ui
 from geofire import gee_indices as gi
 from geofire import repositorio as repo
@@ -48,9 +49,9 @@ if restringido:
 
 # ---------- filtros ----------
 f1, f2, f3 = st.columns([1, 1, 1.4])
-provincia = f1.selectbox("Provincia", ["Todas"] + repo.provincias())
+provincia = f1.selectbox("Provincia", ["Todas"] + cache.provincias())
 prov = None if provincia == "Todas" else provincia
-distrito = f2.selectbox("Distrito", ["Todos"] + repo.distritos(prov))
+distrito = f2.selectbox("Distrito", ["Todos"] + cache.distritos(prov))
 dist = None if distrito == "Todos" else distrito
 niveles = f3.multiselect(
     "Nivel de riesgo", repo.NIVELES + ["SIN_EVALUAR"], default=["CRITICO", "ALTO"],
@@ -62,17 +63,17 @@ modo = m1.radio("Modo", ["Tiempo real", "Evolución histórica"], horizontal=Tru
 hoy = date.today()
 if modo == "Tiempo real":
     horas = m2.select_slider("Ventana de tiempo", [6, 24, 48, 72], value=72, format_func=lambda h: f"{h} h")
-    df = repo.alertas(horas, [n for n in niveles if n != "SIN_EVALUAR"], prov, dist, zona_id) if niveles else repo.alertas(0, [])
+    df = cache.alertas(horas, [n for n in niveles if n != "SIN_EVALUAR"], prov, dist, zona_id) if niveles else cache.alertas(0, [])
     fecha_ref = hoy
     leyenda = f"{len(df)} focos en las últimas {horas} h"
 else:
-    primera, ultima = repo.rango_de_focos()
+    primera, ultima = cache.rango_de_focos()
     c1, c2 = m2.columns([2, 1])
     fecha_hasta = c1.slider("Línea de tiempo (fecha)", primera, ultima, ultima, format="DD/MM/YYYY")
     ventana_dias = c2.selectbox("Mostrar", [1, 3, 7, 15, 30], index=2, format_func=lambda d: f"{d} día(s) hasta esa fecha")
     desde = datetime.combine(fecha_hasta - timedelta(days=ventana_dias - 1), time.min, tzinfo=timezone.utc)
     hasta = datetime.combine(fecha_hasta + timedelta(days=1), time.min, tzinfo=timezone.utc)
-    df = repo.focos_en_periodo(desde, hasta, prov, dist, zona_id=zona_id)
+    df = cache.focos_en_periodo(desde, hasta, prov, dist, zona_id=zona_id)
     df["nivel"] = df["nivel"].fillna("SIN_EVALUAR")
     df = df[df["nivel"].isin(niveles)] if niveles else df.iloc[0:0]
     fecha_ref = fecha_hasta
@@ -103,12 +104,12 @@ with st.expander("Capas del mapa", expanded=False):
 def _vista():
     """Centro y zoom segun la provincia o el distrito elegidos, y su poligono para recortar capas."""
     if dist:
-        zid = zonas.id_por_nombre(dist, "distrito")
+        zid = cache.id_por_nombre(dist, "distrito")
     elif prov:
-        zid = zonas.id_por_nombre(prov, "provincia")
+        zid = cache.id_por_nombre(prov, "provincia")
     else:
         zid = None
-    geom, (w, s, e, n) = zonas.geometria(zid) if zid else zonas.geometria_region()
+    geom, (w, s, e, n) = cache.geometria(zid) if zid else cache.geometria_region()
     span = max(e - w, n - s)
     zoom = 7 if span > 3 else 8 if span > 2 else 9 if span > 1 else 10 if span > 0.5 else 11
     caja = {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}
