@@ -9,6 +9,7 @@ ESTADO_ETIQUETA = {
     "CONFIRMADA": "Confirmada",
     "FALSA_ALARMA": "Falsa alarma",
     "REVISION_HISTORICA": "Histórica",
+    "FUENTE_CONOCIDA": "Fuente conocida",
 }
 
 # Provincia y distrito de cada foco (union espacial con las zonas). `f` es focos_calor.
@@ -17,6 +18,8 @@ ZONA_JOIN = (
     "JOIN zonas p ON p.id = d.padre_id WHERE d.tipo = 'distrito' AND ST_Intersects(d.geom, f.geom) LIMIT 1) zz ON TRUE "
 )
 ZONA_FILTRO = "AND (%s::text IS NULL OR zz.provincia = %s) AND (%s::text IS NULL OR zz.distrito = %s) "
+# Limita a lo que cae dentro de una zona asignada (guardaparque, AC-09.2)
+ZONA_ID_FILTRO = "AND (%s::int IS NULL OR EXISTS (SELECT 1 FROM zonas zs WHERE zs.id = %s AND ST_Intersects(zs.geom, f.geom))) "
 
 
 def _zona_params(provincia, distrito):
@@ -30,16 +33,16 @@ def _query(sql, params=()):
         return pd.DataFrame(cur.fetchall(), columns=cols)
 
 
-def alertas(horas, niveles=None, provincia=None, distrito=None):
+def alertas(horas, niveles=None, provincia=None, distrito=None, zona_id=None):
     """Alertas con su foco dentro de la ventana de tiempo (horas), opcionalmente de una provincia o distrito."""
     return _query(
         "SELECT a.id, a.nivel, a.puntaje, a.estado, a.ndvi, a.ndwi, a.nbr, a.en_anp, "
         "f.fecha_hora, f.frp, f.confianza, f.fuente, ST_Y(f.geom) AS lat, ST_X(f.geom) AS lon, zz.provincia, zz.distrito "
         "FROM alertas a JOIN focos_calor f ON f.id = a.foco_id " + ZONA_JOIN +
-        "WHERE f.fecha_hora >= now() - make_interval(hours => %s) AND a.nivel = ANY(%s) " + ZONA_FILTRO +
+        "WHERE f.fecha_hora >= now() - make_interval(hours => %s) AND a.nivel = ANY(%s) " + ZONA_FILTRO + ZONA_ID_FILTRO +
         "ORDER BY CASE a.nivel WHEN 'CRITICO' THEN 0 WHEN 'ALTO' THEN 1 WHEN 'MEDIO' THEN 2 ELSE 3 END, "
         "f.fecha_hora DESC",
-        (horas, niveles or NIVELES, *_zona_params(provincia, distrito)),
+        (horas, niveles or NIVELES, *_zona_params(provincia, distrito), zona_id, zona_id),
     )
 
 
@@ -77,13 +80,13 @@ def no_evaluables(horas):
     return dict(zip(df["motivo"], df["n"]))
 
 
-def focos_en_periodo(desde, hasta, provincia=None, distrito=None, limite=5000):
+def focos_en_periodo(desde, hasta, provincia=None, distrito=None, limite=5000, zona_id=None):
     """Focos entre dos instantes (linea de tiempo, RF-11). `nivel` es NULL si el foco no tiene evaluacion de riesgo."""
     return _query(
         "SELECT f.id, f.fecha_hora, f.frp, f.fuente, ST_Y(f.geom) AS lat, ST_X(f.geom) AS lon, a.nivel, zz.provincia, zz.distrito "
         "FROM focos_calor f LEFT JOIN alertas a ON a.foco_id = f.id " + ZONA_JOIN +
-        "WHERE f.fecha_hora >= %s AND f.fecha_hora < %s " + ZONA_FILTRO + "ORDER BY f.fecha_hora DESC LIMIT %s",
-        (desde, hasta, *_zona_params(provincia, distrito), limite),
+        "WHERE f.fecha_hora >= %s AND f.fecha_hora < %s " + ZONA_FILTRO + ZONA_ID_FILTRO + "ORDER BY f.fecha_hora DESC LIMIT %s",
+        (desde, hasta, *_zona_params(provincia, distrito), zona_id, zona_id, limite),
     )
 
 

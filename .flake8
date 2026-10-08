@@ -7,4 +7,5 @@ per-file-ignores =
     app/views/*.py:E402,E501
     app/ui.py:E501
     scripts/validar_mascara_agua.py:E501
+    tests/test_diseno_completo.py:E501
     src/geofire/mascara_agua.py:E501

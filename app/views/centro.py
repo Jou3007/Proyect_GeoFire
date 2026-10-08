@@ -18,7 +18,7 @@ if ultima:
     color = "#3f9d5b" if ok else "#d93025"
     estado = "Sistema operativo" if ok else ("Ciclo con fallos" if ultima[1] != "OK" else "Sin actualizar hace más de 4 h")
     st.markdown(
-        f"<div style='font-size:.8rem;color:#6b7a72;margin-bottom:.6rem'><span class='gf-punto' style='background:{color}'></span>"
+        f"<div style='font-size:.8rem;color:#55645c;margin-bottom:.6rem'><span class='gf-punto' style='background:{color}'></span>"
         f"{estado} · última actualización automática hace {hace:.1f} h</div>",
         unsafe_allow_html=True,
     )
@@ -85,8 +85,8 @@ with prov_col:
     pp = repo.por_provincia(horas)
     filas = "".join(
         f"<div class='gf-fila'><div><b>{escape(r.provincia)}</b></div><div>"
-        f"<span class='gf-badge' style='background:#d9302522;color:#d93025'>{r.criticas} críticas</span> "
-        f"<span class='gf-badge' style='background:#f08a2422;color:#f08a24'>{r.altas} altas</span></div></div>"
+        f"<span class='gf-badge' style='background:#d9302522;color:#a8201a'>{r.criticas} críticas</span> "
+        f"<span class='gf-badge' style='background:#f08a2422;color:#8f4300'>{r.altas} altas</span></div></div>"
         for r in pp.itertuples()
     ) or "<div class='gf-fila'>Sin alertas Alto o Crítico en este periodo.</div>"
     st.markdown(

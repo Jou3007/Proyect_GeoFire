@@ -18,7 +18,7 @@ section[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], hea
 .gf-login-marca { display:flex; align-items:center; gap:.6rem; margin-bottom:3rem; }
 .gf-login-marca .logo { background:#c2e46a; color:#0f6b4f; font-family:'Space Grotesk',Arial,sans-serif; font-weight:700; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; }
 .gf-login-marca b { font-family:'Space Grotesk',Arial,sans-serif; font-size:1.2rem; display:block; line-height:1; }
-.gf-login-marca small { color:#6b7a72; letter-spacing:.2em; font-size:.6rem; }
+.gf-login-marca small { color:#55645c; letter-spacing:.2em; font-size:.6rem; }
 div[data-testid="stForm"] { border:none; padding:0; }
 </style>
 """,

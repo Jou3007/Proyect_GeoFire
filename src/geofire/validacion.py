@@ -12,7 +12,7 @@ from PIL import Image, UnidentifiedImageError
 
 from geofire import auditoria
 from geofire.db import get_connection
-from geofire.repositorio import _query
+from geofire.repositorio import ZONA_ID_FILTRO, _query
 
 ROLES_VALIDADORES = ("guardaparque", "autoridad_regional")
 ESTADOS = ("CONFIRMADA", "FALSA_ALARMA")
@@ -46,16 +46,16 @@ def procesar_foto(datos: bytes):
     return salida.getvalue(), FORMATOS[formato]
 
 
-def pendientes(horas=72):
-    """Alertas Alto/Critico que aun no tienen validacion humana."""
+def pendientes(horas=72, zona_id=None):
+    """Alertas Alto/Critico que aun no tienen validacion humana (opcionalmente solo las de una zona)."""
     return _query(
         "SELECT a.id, a.nivel, a.puntaje, a.estado, a.ndvi, a.en_anp, f.fecha_hora, f.frp, "
         "ST_Y(f.geom) AS lat, ST_X(f.geom) AS lon "
         "FROM alertas a JOIN focos_calor f ON f.id = a.foco_id "
         "WHERE a.nivel IN ('ALTO', 'CRITICO') AND a.estado IN ('ACTIVA', 'REVISION_HISTORICA') "
-        "AND f.fecha_hora >= now() - make_interval(hours => %s) "
+        "AND f.fecha_hora >= now() - make_interval(hours => %s) " + ZONA_ID_FILTRO +
         "ORDER BY CASE a.nivel WHEN 'CRITICO' THEN 0 ELSE 1 END, f.fecha_hora DESC",
-        (horas,),
+        (horas, zona_id, zona_id),
     )
 
 
@@ -70,6 +70,21 @@ def validaciones_recientes(usuario_id=None, limite=10):
     )
 
 
+def _verificar_zona(alerta_id, usuario):
+    zona = usuario.get("zona_id")
+    dentro = False
+    if zona:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT EXISTS (SELECT 1 FROM alertas a JOIN focos_calor f ON f.id = a.foco_id JOIN zonas z ON z.id = %s "
+                "WHERE a.id = %s AND ST_Intersects(z.geom, f.geom))", (zona, alerta_id))
+            dentro = cur.fetchone()[0]
+    if not dentro:
+        auditoria.registrar(auditoria.ACCESO_DENEGADO, usuario.get("id"), usuario.get("email"),
+                            {"accion": "validar alerta fuera de su zona", "alerta_id": alerta_id, "zona_id": zona})
+        raise PermissionError("Esta alerta está fuera de tu zona asignada." if zona else "Aún no tienes una zona asignada.")
+
+
 def validar(alerta_id, usuario, estado, comentario="", foto=None, referencia_evidencia=""):
     """Registra la validacion. `usuario` es el dict de sesion (id, rol, email). `foto` son bytes o None."""
     if usuario["rol"] not in ROLES_VALIDADORES:
@@ -78,6 +93,8 @@ def validar(alerta_id, usuario, estado, comentario="", foto=None, referencia_evi
         raise PermissionError("Solo guardaparques o autoridad regional pueden validar alertas (RN-03).")
     if estado not in ESTADOS:
         raise ValueError("Estado no válido.")
+    if usuario["rol"] == "guardaparque":  # AC-09.2: solo valida alertas de su zona asignada
+        _verificar_zona(alerta_id, usuario)
     comentario = (comentario or "").strip()[:1000]
     referencia = (referencia_evidencia or "").strip()[:300]
     if len(comentario) < MIN_JUSTIFICACION:

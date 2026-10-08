@@ -28,6 +28,9 @@ class TestValidacion(unittest.TestCase):
                 "VALUES (%s, 'ALTO', 0.3, 30, 'ACTIVA') RETURNING id", (self.foco,)
             )
             self.alerta = cur.fetchone()[0]
+            cur.execute("INSERT INTO zonas (nombre, tipo, geom) VALUES ('ZZ Zona validacion', 'distrito', "
+                        "ST_Multi(ST_MakeEnvelope(-70.5, -5.5, -69.5, -4.5, 4326))) RETURNING id")
+            self.zona = cur.fetchone()[0]  # el guardaparque de prueba tiene asignada la zona donde esta el foco (AC-09.2)
             self.usuarios = {}
             for rol in ("guardaparque", "autoridad_regional", "administrador"):
                 correo = f"t-{rol}-{sufijo}@geofire.test"
@@ -35,7 +38,7 @@ class TestValidacion(unittest.TestCase):
                     "INSERT INTO usuarios (email, rol, password_hash, nombre) VALUES (%s, %s, 'x', %s) RETURNING id",
                     (correo, rol, rol),
                 )
-                self.usuarios[rol] = {"id": cur.fetchone()[0], "rol": rol, "email": correo}
+                self.usuarios[rol] = {"id": cur.fetchone()[0], "rol": rol, "email": correo, "zona_id": self.zona}
 
     def tearDown(self):
         with get_connection() as conn, conn.cursor() as cur:
@@ -47,6 +50,7 @@ class TestValidacion(unittest.TestCase):
             cur.execute("DELETE FROM alertas WHERE id = %s", (self.alerta,))
             cur.execute("DELETE FROM focos_calor WHERE id = %s", (self.foco,))
             cur.execute("DELETE FROM usuarios WHERE email LIKE 't-%%@geofire.test'")
+            cur.execute("DELETE FROM zonas WHERE id = %s", (self.zona,))
         borrar_auditoria_de_prueba()
 
     def _estado(self):

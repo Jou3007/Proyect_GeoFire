@@ -26,6 +26,7 @@ TODAS = {
     "incidentes": st.Page("views/incidentes.py", title="Incidentes", url_path="incidentes"),
     "validacion": st.Page("views/validacion.py", title="Mis alertas", url_path="validacion"),
     "reportes": st.Page("views/reportes.py", title="Reportes", url_path="reportes"),
+    "geocercas": st.Page("views/geocercas.py", title="Geocercas", url_path="geocercas"),
     "usuarios": st.Page("views/usuarios.py", title="Usuarios", url_path="usuarios"),
     "auditoria": st.Page("views/auditoria.py", title="Auditoría", url_path="auditoria"),
 }
@@ -39,9 +40,10 @@ ROL_TXT = {"administrador": "Administrador", "autoridad_regional": "Autoridad re
 with st.sidebar:
     st.markdown(
         f"<div style='font-size:.85rem'><b>{escape(usuario['nombre'])}</b><br>"
-        f"<span style='color:#6b7a72'>{ROL_TXT[usuario['rol']]}</span></div>",
+        f"<span style='color:#55645c'>{ROL_TXT[usuario['rol']]}</span></div>",
         unsafe_allow_html=True,
     )
+    st.toggle("Alto contraste", key="alto_contraste", help="Negro sobre blanco y letra más grande, para leer bajo la luz del sol")
     if st.button("Cerrar sesión", use_container_width=True):
         seguridad.cerrar_sesion(usuario)
         del st.session_state["usuario"]

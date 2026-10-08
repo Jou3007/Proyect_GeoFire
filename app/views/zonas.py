@@ -81,9 +81,9 @@ st.write("")
 filas = ""
 for r in dist.itertuples():
     nivel = r.nivel if r.evaluable else None
-    badge = ui.badge(nivel) if nivel else "<span class='gf-badge' style='background:#8a8f9822;color:#6b7280'>No evaluable</span>"
+    badge = ui.badge(nivel) if nivel else "<span class='gf-badge' style='background:#8a8f9822;color:#4b5563'>No evaluable</span>"
     filas += (
-        f"<tr><td><b>{escape(r.nombre)}</b><br><span style='color:#6b7a72;font-size:.75rem'>{escape(r.provincia or '')}</span></td>"
+        f"<tr><td><b>{escape(r.nombre)}</b><br><span style='color:#55645c;font-size:.75rem'>{escape(r.provincia or '')}</span></td>"
         f"<td>{badge}</td><td>{'' if r.ndvi_medio != r.ndvi_medio else f'{r.ndvi_medio:.2f}'}</td>"
         f"<td>{'' if r.pct_estres != r.pct_estres else f'{r.pct_estres:.1f} %'}</td><td>{r.pct_cobertura:.0f} %</td>"
         f"<td>{r.focos_30d}</td></tr>"
@@ -93,6 +93,8 @@ st.markdown(
     f"<th>Cobertura válida</th><th>Focos (30 d)</th></tr>{filas}</table>",
     unsafe_allow_html=True,
 )
+st.download_button("Exportar zonas en GeoJSON", json.dumps(zonas.geojson_con_niveles("distrito"), ensure_ascii=False).encode("utf-8"),
+                   "zonas_geofire.geojson", "application/geo+json")
 st.caption("«No evaluable» no es un nivel de riesgo: significa que no hubo imágenes válidas suficientes (AC-06.1).")
 
 # ---------- detalle ----------

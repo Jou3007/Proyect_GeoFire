@@ -3,6 +3,7 @@ from html import escape
 import streamlit as st
 
 import ui
+from geofire import geojson, seguridad
 from geofire import repositorio as repo
 
 ui.inicializar()
@@ -22,7 +23,11 @@ dist = None if distrito == "Todos" else distrito
 niveles = {"Alto y Crítico": ["ALTO", "CRITICO"], "Todos": repo.NIVELES}.get(
     nivel, [k for k, v in ui.ETIQUETA.items() if v == nivel]
 )
-df = repo.alertas(dias * 24, niveles, prov, dist)
+restringido, zona_id = seguridad.alcance(st.session_state["usuario"])
+if restringido and not zona_id:
+    st.warning("Aún no tienes una zona asignada. Pídele al administrador que te asigne un distrito o una provincia.")
+    st.stop()
+df = repo.alertas(dias * 24, niveles, prov, dist, zona_id)
 if not df.empty:
     df["codigo"] = df.apply(lambda r: f"GF-{r.fecha_hora:%y%m%d}-{r.id:04d}", axis=1)
     df["estado_txt"] = df["estado"].map(repo.ESTADO_ETIQUETA)
@@ -37,11 +42,14 @@ if not df.empty:
             | df.apply(lambda r: t in f"{r.lat:.4f},{r.lon:.4f}", axis=1)
         ]
 
-a, b = st.columns([4, 1])
-a.caption(f"{len(df):,} incidentes encontrados")
+a, b, g = st.columns([3, 1, 1])
+a.caption(f"{len(df):,} incidentes encontrados" + (f" · solo tu zona: {st.session_state['usuario']['zona']}" if restringido else ""))
 if not df.empty:
     csv = df[["codigo", "nivel", "estado_txt", "fecha_hora", "provincia", "distrito", "lat", "lon", "frp", "ndvi", "en_anp"]].to_csv(index=False)
     b.download_button("Exportar CSV", csv.encode("utf-8"), "incidentes_geofire.csv", "text/csv", use_container_width=True)
+    fc = geojson.puntos(df, ["codigo", "nivel", "estado_txt", "fecha_hora", "provincia", "distrito", "frp", "ndvi", "en_anp"])
+    g.download_button("Exportar GeoJSON", geojson.a_texto(fc).encode("utf-8"), "incidentes_geofire.geojson",
+                      "application/geo+json", use_container_width=True)
 
 POR_PAGINA = 15
 paginas = max(1, -(-len(df) // POR_PAGINA))
@@ -49,7 +57,7 @@ pag = st.number_input("Página", 1, paginas, 1) if paginas > 1 else 1
 vista = df.iloc[(pag - 1) * POR_PAGINA: pag * POR_PAGINA]
 filas = "".join(
     f"<tr><td><b>{r.codigo}</b></td><td>{r.lat:.4f}, {r.lon:.4f}{' · ANP' if r.en_anp else ''}"
-    f"<br><span style='color:#6b7a72;font-size:.75rem'>{escape(r.distrito)} {escape(r.provincia)}</span></td>"
+    f"<br><span style='color:#55645c;font-size:.75rem'>{escape(r.distrito)} {escape(r.provincia)}</span></td>"
     f"<td>{r.fecha_hora:%d %b %Y %H:%M} UTC</td><td>{ui.badge(r.nivel)}</td><td>{r.estado_txt}</td></tr>"
     for r in vista.itertuples()
 )

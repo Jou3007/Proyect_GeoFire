@@ -67,15 +67,16 @@ if rep.nota_area:
     st.warning(rep.nota_area)
 
 st.write("")
-d1, d2, _ = st.columns([1, 1, 2])
+d1, d2, d3, _ = st.columns([1, 1, 1, 1])
 nombre = f"geofire_reporte_{rep.inicio:%Y%m%d}_{rep.fin:%Y%m%d}"
 d1.download_button("⬇ Descargar PDF", reportes.a_pdf(rep), f"{nombre}.pdf", "application/pdf", use_container_width=True)
 d2.download_button("⬇ Descargar CSV", reportes.a_csv(rep), f"{nombre}.csv", "text/csv", use_container_width=True)
+d3.download_button("⬇ Descargar GeoJSON", reportes.a_geojson(rep), f"{nombre}.geojson", "application/geo+json", use_container_width=True)
 
 if not rep.df.empty:
     filas = "".join(
         f"<tr><td><b>{r.codigo}</b></td><td>{r.lat:.4f}, {r.lon:.4f}{' · ANP' if r.en_anp else ''}"
-        f"<br><span style='color:#6b7a72;font-size:.75rem'>{escape(r.distrito)} {escape(r.provincia)}</span></td>"
+        f"<br><span style='color:#55645c;font-size:.75rem'>{escape(r.distrito)} {escape(r.provincia)}</span></td>"
         f"<td>{r.fecha_hora:%d %b %Y %H:%M} UTC</td><td>{ui.badge(r.nivel)}</td><td>{r.estado_txt}</td></tr>"
         for r in rep.df.head(15).itertuples()
     )
