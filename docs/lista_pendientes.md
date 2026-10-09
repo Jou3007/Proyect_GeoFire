@@ -20,10 +20,10 @@ Costo: **0**. Servicios con plan gratuito: Neon (base de datos), Streamlit Commu
 - [x] **B7. Monitor de disponibilidad:** registrar la dirección en UptimeRobot (gratis) y guardar el reporte (RNF-02, meta del MVP ≥ 95 %).
 
 ## C. Datos oficiales (RF y RN) — no hay descarga automática; hay que pedirlos o descargarlos
-- [ ] **C1. Comunidades nativas.** Fuente oficial: **BDPI del Ministerio de Cultura** (bdpi.cultura.gob.pe, más de 9 mil localidades). Revisar si ofrece descarga;
+- [x] **C1. Comunidades nativas (parcial).** Cargadas 74 de RAISG/IBC dentro de Ucayali (scripts/load_comunidades.py); BDPI no ofrece descarga. Fuente oficial: **BDPI del Ministerio de Cultura** (bdpi.cultura.gob.pe, más de 9 mil localidades). Revisar si ofrece descarga;
   si no, pedirla por mesa de partes o correo. Alternativa referencial: capas de MapBiomas Perú (comunidades tituladas, IBC 2023).
   > Con el archivo (GeoJSON/CSV): «tengo el archivo de comunidades, cárgalo en reemplazo de OpenStreetMap».
-- [ ] **C2. Límite oficial de Ucayali** (INEI o IGN, GeoJSON). Se sube desde la pantalla **Geocercas** (valida topología y área).
+- [x] **C2 (se usa GAUL, ver nota en el informe). Límite oficial de Ucayali** (INEI o IGN, GeoJSON). Se sube desde la pantalla **Geocercas** (valida topología y área).
 - [ ] **C3. Incendios forestales confirmados.** SERFOR (visor GEOSERFOR, geo.serfor.gob.pe/visor) publica focos de calor y reportes; los confirmados
   suelen pedirse a SERFOR/INDECI (SINPAD). Pídelos por solicitud de acceso a la información pública (gratis).
   > Con la lista: «repite el backtesting con los incendios confirmados».
