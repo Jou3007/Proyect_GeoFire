@@ -95,6 +95,20 @@ class TestLogin(unittest.TestCase):
         df = df[df["email"] == admin["email"]]
         self.assertEqual(set(df["evento"]), {"USUARIO_DESACTIVADO", "USUARIO_ACTIVADO", "PASSWORD_CAMBIADA"})
 
+    def test_restablecer_clave_desbloquea_y_permite_entrar(self):
+        for _ in range(seg.MAX_INTENTOS):
+            seg.autenticar(self.email, "mala")
+        self.assertEqual(seg.autenticar(self.email, self.password)[1], seg.MSG_BLOQUEADA)  # bloqueada
+        seg.restablecer_por_correo(self.email.upper(), "clave-nueva-123")  # el correo no distingue mayusculas
+        self.assertIsNone(seg.autenticar(self.email, self.password)[0])       # la vieja ya no sirve
+        self.assertIsNotNone(seg.autenticar(self.email, "clave-nueva-123")[0])  # la nueva si, y ya no esta bloqueada
+
+    def test_restablecer_valida_correo_y_longitud(self):
+        with self.assertRaises(ValueError):
+            seg.restablecer_por_correo("nadie@geofire.test", "clave-nueva-123")
+        with self.assertRaises(ValueError):
+            seg.restablecer_por_correo(self.email, "corta")
+
     def test_login_correcto(self):
         usuario, _ = seg.autenticar(self.email, self.password)
         self.assertEqual(usuario["rol"], "guardaparque")

@@ -82,7 +82,7 @@ else:
 
 # ---------- capas ----------
 with st.expander("Capas del mapa", expanded=False):
-    st.caption("Activa capas y ajusta su opacidad. Las capas de Earth Engine tardan unos segundos en dibujarse.")
+    st.caption("Marca la casilla para mostrar la capa y mueve la barra (0 = transparente, 100 = opaca). Las capas de Earth Engine tardan unos segundos en dibujarse.")
     capas = {}
     filas = [("ZONAS", "Zonas evaluadas (nivel de riesgo)", 35), ("NDVI", gi.CAPAS["NDVI"][0], 70),
              ("ESTRES", gi.CAPAS["ESTRES"][0], 80), ("NBR", gi.CAPAS["NBR"][0], 70),
@@ -90,8 +90,9 @@ with st.expander("Capas del mapa", expanded=False):
     for clave, etiqueta, op in filas:
         a, b = st.columns([2, 1])
         activa = a.checkbox(etiqueta, value=clave == "ZONAS", key=f"capa_{clave}")
-        opacidad = b.slider("Opacidad", 0, 100, op, key=f"op_{clave}", label_visibility="collapsed", disabled=not activa)
+        opacidad = b.slider("Opacidad (%)", 0, 100, op, key=f"op_{clave}", label_visibility="collapsed")
         capas[clave] = (activa, opacidad / 100)
+    _firma = "_".join(f"{int(a)}{int(o * 100)}" for a, o in capas.values())
     sat = any(capas[c][0] for c in ("NDVI", "ESTRES", "NBR"))
     d1, d2 = st.columns(2)
     fecha_sat = d1.date_input("Fecha de las capas Sentinel-2 (promedio de los 30 días previos)", min(fecha_ref, hoy),
@@ -140,7 +141,7 @@ def construir_mapa(corte, centro, zoom, caja, avisos):
             folium.TileLayer(tiles=url, attr="Google Earth Engine · Copernicus Sentinel-2", name=f"{gi.CAPAS[capa][0]} · {corte:%d/%m/%Y}",
                              opacity=op, overlay=True, max_zoom=14).add_to(m)
         except Exception as e:  # sin red, sin credenciales de Earth Engine, etc.
-            avisos.append(f"Capa «{gi.CAPAS[capa][0]}» no disponible ({type(e).__name__}).")
+            avisos.append(f"Capa «{gi.CAPAS[capa][0]}» no disponible ({type(e).__name__}): {str(e)[:220]}")
     gibs_dia = min(fecha_ref, hoy - timedelta(days=1))
     for clave, (ident, nivel, ext, desc) in GIBS.items():
         activa, op = capas[clave]
@@ -174,14 +175,14 @@ with mapa_col:
         with ca:
             st.caption(f"Capas del {fecha_sat:%d/%m/%Y}")
             st_folium(construir_mapa(fecha_sat, centro, zoom, caja, avisos), height=520, use_container_width=True,
-                      returned_objects=[], key="mapa_a")
+                      returned_objects=[], key=f"mapa_a_{_firma}")
         with cb:
             st.caption(f"Capas del {fecha_b:%d/%m/%Y} (comparación)")
             st_folium(construir_mapa(fecha_b, centro, zoom, caja, avisos), height=520, use_container_width=True,
-                      returned_objects=[], key="mapa_b")
+                      returned_objects=[], key=f"mapa_b_{_firma}")
     else:
         st_folium(construir_mapa(fecha_sat, centro, zoom, caja, avisos), height=560, use_container_width=True,
-                  returned_objects=[], key="mapa")
+                  returned_objects=[], key=f"mapa_{_firma}")
     for a in dict.fromkeys(avisos):
         st.warning(a)
 with panel_col:

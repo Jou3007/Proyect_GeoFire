@@ -72,10 +72,13 @@ with k4:
 
 if puede_evaluar:
     if st.button("Reevaluar zonas ahora (tarda ~1 min)"):
-        with st.spinner("Evaluando zonas con Sentinel-2…"):
-            resumen = zonas.evaluar_todas()
-        auditoria.registrar("ZONAS_EVALUADAS", usuario["id"], usuario["email"], resumen)
-        st.rerun()
+        try:
+            with st.spinner("Evaluando zonas con Sentinel-2…"):
+                resumen = zonas.evaluar_todas()
+            auditoria.registrar("ZONAS_EVALUADAS", usuario["id"], usuario["email"], resumen)
+            st.rerun()
+        except Exception as ex:
+            st.error(f"No se pudo reevaluar ({type(ex).__name__}): {str(ex)[:300]}")
 st.write("")
 
 filas = ""
@@ -141,7 +144,7 @@ with c2:
                                  attr="Google Earth Engine · Copernicus Sentinel-2", name=gi.CAPAS[capa][0],
                                  opacity=op / 100, overlay=True, max_zoom=14).add_to(m)
             except Exception as ex:
-                aviso = f"Capas satelitales no disponibles ({type(ex).__name__})."
+                aviso = f"Capas satelitales no disponibles ({type(ex).__name__}): {str(ex)[:220]}"
     folium.GeoJson(geom, style_function=lambda f: {"color": "#0f6b4f", "weight": 3, "fillOpacity": 0}).add_to(m)
     st_folium(m, height=420, use_container_width=True, returned_objects=[], key=f"zona_{zid}")
     if aviso:
