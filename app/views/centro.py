@@ -9,7 +9,7 @@ import ui
 from geofire import repositorio as repo
 
 ui.inicializar()
-ui.encabezado("Centro de operaciones", "Centro de operaciones", "Pulso del territorio de Ucayali en tiempo casi real.")
+ui.encabezado("Centro de operaciones", "Centro de operaciones")
 
 ultima = cache.ultima_ejecucion()
 if ultima:
@@ -37,7 +37,7 @@ c1, c2, c3, c4 = st.columns(4)
 with c1:
     ui.tarjeta("Alertas activas (Alto + Critico)", activas, f"ultimas {horas} h", verde=True)
 with c2:
-    ui.tarjeta("Alertas criticas", res["CRITICO"], "cumplen 2 o mas condiciones RN-02")
+    ui.tarjeta("Alertas criticas", res["CRITICO"], "2 o más condiciones RN-02")
 with c3:
     ui.tarjeta("Focos evaluados", f"{sum(res.values()):,}", f"ultimas {horas} h")
 with c4:
