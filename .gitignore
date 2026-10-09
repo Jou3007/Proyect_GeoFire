@@ -23,3 +23,9 @@ data/fotos/
 
 # Temporales de las mediciones
 data/_*
+
+# Clave de la cuenta de servicio de Google y secretos generados para la nube (NUNCA al repositorio)
+clave-*.json
+*-credentials.json
+.streamlit/github_secretos.txt
+.env.nube*
