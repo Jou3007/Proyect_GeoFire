@@ -162,6 +162,16 @@ def set_activo(uid: int, activo: bool, actor: dict | None = None) -> None:
     auditoria.registrar(evento, (actor or {}).get("id"), (actor or {}).get("email"), {"usuario_id": uid})
 
 
+def restablecer_por_correo(email: str, password: str, actor: dict | None = None) -> None:
+    """Cambia la contrasena de la cuenta con ese correo y la desbloquea. ValueError si el correo no existe o la clave es corta."""
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT id FROM usuarios WHERE lower(email) = %s", ((email or "").strip().lower(),))
+        fila = cur.fetchone()
+    if fila is None:
+        raise ValueError("No hay ningún usuario con ese correo.")
+    cambiar_password(fila[0], password, actor)
+
+
 def cambiar_password(uid: int, password: str, actor: dict | None = None) -> None:
     if len(password) < MIN_PASSWORD:
         raise ValueError(f"La contraseña debe tener al menos {MIN_PASSWORD} caracteres.")
