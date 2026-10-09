@@ -14,3 +14,18 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+
+# Fotos de validacion en campo (datos de usuarios, no van a git)
+data/fotos/
+
+# Secretos de Streamlit Cloud (la plantilla .example si va al repo)
+.streamlit/secrets.toml
+
+# Temporales de las mediciones
+data/_*
+
+# Clave de la cuenta de servicio de Google y secretos generados para la nube (NUNCA al repositorio)
+clave-*.json
+*-credentials.json
+.streamlit/github_secretos.txt
+.env.nube*

@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 140
+extend-ignore = E203
+exclude = .git,__pycache__,data
+per-file-ignores =
+    app/main.py:E402
+    app/views/*.py:E402,E501
+    app/ui.py:E501
+    scripts/*.py:E501
+    tests/test_diseno_completo.py:E501
+    src/geofire/mascara_agua.py:E501
+    src/geofire/backtesting.py:E501
+    tests/test_casos_cp.py:E501

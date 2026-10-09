@@ -1,0 +1,17 @@
+{
+  "_nota": "Focos ficticios colocados a proposito (cap. 12.9): dentro de un ANP, junto a un aserradero, en medio del rio y fuera de la region. frp_p50=7.61 y frp_p90=41.66 vienen de config/riesgo.json.",
+  "escenarios": [
+    {"id": "CP-07", "descripcion": "Foco en ANP con NDVI de estres", "foco": {"frp": 35, "confianza": "h", "antiguedad_h": 1},
+     "contexto": {"ndvi": 0.21, "en_anp": true}, "esperado": {"nivel": "CRITICO", "reglas": ["RN-02.2", "RN-02.3"]}},
+    {"id": "CP-08", "descripcion": "Foco junto a un aserradero registrado", "foco": {"frp": 10, "confianza": "n", "antiguedad_h": 1},
+     "contexto": {"ndvi": 0.2, "en_anp": true, "cerca_fuente_conocida": true}, "esperado": {"nivel": "BAJO", "reglas": ["RN-04"]}},
+    {"id": "CP-08b", "descripcion": "Aserradero pero con intensidad extrema (> p90)", "foco": {"frp": 90, "confianza": "h", "antiguedad_h": 1},
+     "contexto": {"ndvi": 0.2, "en_anp": true, "cerca_fuente_conocida": true}, "esperado": {"nivel": "CRITICO", "reglas": ["RN-02.2"]}},
+    {"id": "CP-09", "descripcion": "Evaluacion ALTA: solo NDVI de estres", "foco": {"frp": 5, "confianza": "n", "antiguedad_h": 1},
+     "contexto": {"ndvi": 0.30}, "esperado": {"nivel": "ALTO", "estado": "ACTIVA"}},
+    {"id": "CP-17", "descripcion": "Alerta sin validar por mas de 6 h", "foco": {"frp": 20, "confianza": "n", "antiguedad_h": 7},
+     "contexto": {"ndvi": 0.30}, "esperado": {"nivel": "ALTO", "estado": "REVISION_HISTORICA", "reglas": ["RN-05"]}},
+    {"id": "CP-sano", "descripcion": "Vegetacion sana, lejos de todo", "foco": {"frp": 3, "confianza": "l", "antiguedad_h": 1},
+     "contexto": {"ndvi": 0.82}, "esperado": {"nivel": "BAJO", "estado": "ACTIVA"}}
+  ]
+}

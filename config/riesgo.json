@@ -1,0 +1,21 @@
+{
+  "_nota": "Valores provisionales. El umbral NDVI se calibra con el historico (Sprint 3) y todo se ajusta con el backtesting (Sprint 6).",
+  "umbral_ndvi_estres": 0.45,
+  "umbral_ndwi_agua": -0.1,
+  "frp_p50": 7.61,
+  "frp_p90": 41.66,
+  "distancia_comunidad_km": 10,
+  "tipos_asentamiento": ["city", "town", "village", "hamlet"],
+  "cercania_sola_genera_alto": false,
+  "vigencia_horas": 6,
+  "zonas": {
+    "_nota": "Umbrales provisionales de zona, calibrados con la primera evaluacion real (2026-10-08: estres 0.2-14.7 %, 3-26 focos/100 km2 en 30 dias); se ajustan con el backtesting (Sprint 6).",
+    "ventana_dias": 30,
+    "anios_base": 3,
+    "cobertura_minima_pct": 30,
+    "estres_alto_pct": 5,
+    "estres_critico_pct": 12,
+    "anomalia_ndvi": 0.03,
+    "focos_por_100km2": 15
+  }
+}
