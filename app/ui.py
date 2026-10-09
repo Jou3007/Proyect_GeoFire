@@ -26,6 +26,8 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a[aria-current="pa
 .gf-h1 { font-family:'Space Grotesk',Arial,sans-serif; font-size:2.4rem; font-weight:600; margin:.1rem 0 .2rem; letter-spacing:-0.03em; }
 .gf-sub { color:var(--suave); margin-bottom:1.2rem; }
 .gf-card { background:#fff; border:1px solid var(--borde); border-radius:16px; padding:1.1rem 1.3rem; }
+.gf-card .nota { min-height:1.2rem; }
+.gf-card:has(.num) { min-height:9.2rem; box-sizing:border-box; }
 .gf-card.verde { background:var(--verde); color:#fff; border-color:var(--verde); }
 .gf-card .et { font-size:.78rem; color:var(--suave); }
 .gf-card.verde .et { color:#cfe8da; }
