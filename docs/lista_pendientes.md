@@ -10,9 +10,9 @@ decirle a Claude para continuar. Marca con una X lo que vayas terminando.
 
 ## B. Publicar gratis en la nube (RNF-02) — guía completa: `docs/despliegue_nube.md`
 Costo: **0**. Servicios con plan gratuito: Neon (base de datos), Streamlit Community Cloud (la web), GitHub Actions (el ciclo cada 3 h), Google Earth Engine (uso no comercial).
-- [ ] **B1. Base de datos (Neon).** Crear cuenta, proyecto `geofire`, copiar la cadena de conexión (`postgresql://...`).
+- [x] **B1. Base de datos (Neon).** Crear cuenta, proyecto `geofire`, copiar la cadena de conexión (`postgresql://...`).
   > Dile a Claude: «ya tengo la cadena de Neon, instala la base» (la pegas **solo en tu terminal**, no en el chat).
-- [ ] **B2. Instalar el esquema y los datos base** en Neon (`scripts/instalar_nube.py`) y crear tu administrador (`scripts/crear_usuario.py`).
+- [x] **B2. Instalar el esquema y los datos base** en Neon (`scripts/instalar_nube.py`) y crear tu administrador (`scripts/crear_usuario.py`).
 - [ ] **B3. Cuenta de servicio de Google** para Earth Engine: crearla, descargar su clave JSON y registrarla en Earth Engine (paso 3 de la guía).
 - [ ] **B4. Streamlit Community Cloud.** New app → repositorio `Jou3007/Proyect_GeoFire`, rama `main`, archivo `app/main.py`, Python 3.12, pegar los *Secrets*.
 - [ ] **B5. GitHub Actions.** Cargar los secretos y la variable `CICLO_ACTIVO = true`; ejecutar el flujo `ingesta` una vez a mano.
