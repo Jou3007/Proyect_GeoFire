@@ -1,23 +1,23 @@
 # Lista de pendientes para terminar el proyecto (retómala en cualquier sesión)
 
-Estado al 2026-10-08. Todo el código está hecho y probado; lo que falta son **acciones tuyas** (cuentas, datos, decisiones). Cada paso trae lo que debes
+Estado al 2026-10-09 (A1-A2 y B1-B7 hechos: web en Streamlit Cloud, ciclo cada 3 h en GitHub Actions, UptimeRobot 100 %). Todo el código está hecho y probado; lo que falta son **acciones tuyas** (cuentas, datos, decisiones). Cada paso trae lo que debes
 decirle a Claude para continuar. Marca con una X lo que vayas terminando.
 
 ## A. Antes de nada
-- [ ] **A1. Fusionar el último pull request** (`feature/validacion-final` → `develop`) y revisar que el CI de GitHub (pestaña Checks) salga en verde.
+- [x] **A1. Fusionar el último pull request** (`feature/validacion-final` → `develop`) y revisar que el CI de GitHub (pestaña Checks) salga en verde.
   > Dile a Claude: «el CI salió en rojo, revisa» si falla.
-- [ ] **A2. Fusionar `develop` → `main`** (pull request). Streamlit Cloud publica desde `main`. Puede pedir la aprobación de otra persona (regla de `main`).
+- [x] **A2. Fusionar `develop` → `main`** (pull request). Streamlit Cloud publica desde `main`. Puede pedir la aprobación de otra persona (regla de `main`).
 
 ## B. Publicar gratis en la nube (RNF-02) — guía completa: `docs/despliegue_nube.md`
 Costo: **0**. Servicios con plan gratuito: Neon (base de datos), Streamlit Community Cloud (la web), GitHub Actions (el ciclo cada 3 h), Google Earth Engine (uso no comercial).
 - [x] **B1. Base de datos (Neon).** Crear cuenta, proyecto `geofire`, copiar la cadena de conexión (`postgresql://...`).
   > Dile a Claude: «ya tengo la cadena de Neon, instala la base» (la pegas **solo en tu terminal**, no en el chat).
 - [x] **B2. Instalar el esquema y los datos base** en Neon (`scripts/instalar_nube.py`) y crear tu administrador (`scripts/crear_usuario.py`).
-- [ ] **B3. Cuenta de servicio de Google** para Earth Engine: crearla, descargar su clave JSON y registrarla en Earth Engine (paso 3 de la guía).
-- [ ] **B4. Streamlit Community Cloud.** New app → repositorio `Jou3007/Proyect_GeoFire`, rama `main`, archivo `app/main.py`, Python 3.12, pegar los *Secrets*.
-- [ ] **B5. GitHub Actions.** Cargar los secretos y la variable `CICLO_ACTIVO = true`; ejecutar el flujo `ingesta` una vez a mano.
-- [ ] **B6. Comprobar:** `scripts/salud.py` en `[OK]`; entrar a la dirección `.streamlit.app` y a Centro de operaciones. Apagar el programador local.
-- [ ] **B7. Monitor de disponibilidad:** registrar la dirección en UptimeRobot (gratis) y guardar el reporte (RNF-02, meta del MVP ≥ 95 %).
+- [x] **B3. Cuenta de servicio de Google** para Earth Engine: crearla, descargar su clave JSON y registrarla en Earth Engine (paso 3 de la guía).
+- [x] **B4. Streamlit Community Cloud.** New app → repositorio `Jou3007/Proyect_GeoFire`, rama `main`, archivo `app/main.py`, Python 3.12, pegar los *Secrets*.
+- [x] **B5. GitHub Actions.** Cargar los secretos y la variable `CICLO_ACTIVO = true`; ejecutar el flujo `ingesta` una vez a mano.
+- [x] **B6. Comprobar:** `scripts/salud.py` en `[OK]`; entrar a la dirección `.streamlit.app` y a Centro de operaciones. Apagar el programador local.
+- [x] **B7. Monitor de disponibilidad:** registrar la dirección en UptimeRobot (gratis) y guardar el reporte (RNF-02, meta del MVP ≥ 95 %).
 
 ## C. Datos oficiales (RF y RN) — no hay descarga automática; hay que pedirlos o descargarlos
 - [ ] **C1. Comunidades nativas.** Fuente oficial: **BDPI del Ministerio de Cultura** (bdpi.cultura.gob.pe, más de 9 mil localidades). Revisar si ofrece descarga;
