@@ -1,11 +1,11 @@
-# Ciclo automatico cada 3 horas: ingesta FIRMS -> evaluacion de riesgo -> correo.
+# Ciclo automatico cada hora: ingesta FIRMS -> evaluacion de riesgo -> correo.
 # Solo corre si en Settings > Secrets and variables > Actions > Variables existe CICLO_ACTIVO = true
 # (requiere una base PostgreSQL/PostGIS en la nube; ver README, seccion "Ejecucion automatica").
 name: ingesta
 
 on:
   schedule:
-    - cron: "0 */3 * * *" # cada 3 horas (UTC)
+    - cron: "5 * * * *" # cada hora, al minuto 5 (UTC)
   workflow_dispatch: {} # permite lanzarlo a mano
 
 concurrency:

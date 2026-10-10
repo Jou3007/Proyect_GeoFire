@@ -117,7 +117,8 @@ def _vista():
     return ((s + n) / 2, (w + e) / 2), zoom, caja
 
 
-def construir_mapa(corte, centro, zoom, caja, avisos):
+def construir_mapa(corte, centro, zoom, caja, avisos, datos=None):
+    datos = df if datos is None else datos
     m = folium.Map(location=list(centro), zoom_start=zoom, tiles="OpenStreetMap", control_scale=True)
     folium.TileLayer(
         tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -151,7 +152,7 @@ def construir_mapa(corte, centro, zoom, caja, avisos):
                 attr="NASA GIBS / Worldview", name=f"{desc} · {gibs_dia:%d/%m/%Y}", opacity=op, overlay=True,
                 max_native_zoom=nivel, max_zoom=14,
             ).add_to(m)
-    for r in df.head(3000).itertuples():
+    for r in datos.head(3000).itertuples():
         nivel = r.nivel
         color = ui.COLOR.get(nivel, "#55645c")
         etiqueta = ui.ETIQUETA.get(nivel, "Sin evaluar")
@@ -177,8 +178,14 @@ with mapa_col:
             st_folium(construir_mapa(fecha_sat, centro, zoom, caja, avisos), height=520, use_container_width=True,
                       returned_objects=[], key=f"mapa_a_{_firma}")
         with cb:
-            st.caption(f"Capas del {fecha_b:%d/%m/%Y} (comparación)")
-            st_folium(construir_mapa(fecha_b, centro, zoom, caja, avisos), height=520, use_container_width=True,
+            st.caption(f"Capas y focos del {fecha_b:%d/%m/%Y} (comparación)")
+            dias = ventana_dias if modo != "Tiempo real" else max(1, -(-horas // 24))
+            df_b = cache.focos_en_periodo(
+                datetime.combine(fecha_b - timedelta(days=dias - 1), time.min, tzinfo=timezone.utc),
+                datetime.combine(fecha_b + timedelta(days=1), time.min, tzinfo=timezone.utc), prov, dist, zona_id=zona_id)
+            df_b["nivel"] = df_b["nivel"].fillna("SIN_EVALUAR")
+            df_b = df_b[df_b["nivel"].isin(niveles)] if niveles else df_b.iloc[0:0]
+            st_folium(construir_mapa(fecha_b, centro, zoom, caja, avisos, df_b), height=520, use_container_width=True,
                       returned_objects=[], key=f"mapa_b_{_firma}")
     else:
         st_folium(construir_mapa(fecha_sat, centro, zoom, caja, avisos), height=560, use_container_width=True,
