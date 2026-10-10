@@ -63,7 +63,7 @@ def save_hotspots(df, source):
     return inserted
 
 
-def ingest(days=1):
+def ingest(days=3):
     """Descarga las 3 fuentes. Devuelve el total de focos nuevos dentro de la geocerca."""
     total = 0
     for source in SOURCES:
