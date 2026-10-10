@@ -38,11 +38,11 @@ Hoy Earth Engine funciona con *tu* sesion personal; en la nube necesita una cuen
 4. **Deploy**. En 2-3 minutos tendras una direccion `https://....streamlit.app` con HTTPS (TLS) incluido (RNF-06).
 5. La app se *duerme* tras unos dias sin visitas: la primera visita la despierta (tarda ~30 s).
 
-## Paso 5. El ciclo cada 3 horas en GitHub Actions
+## Paso 5. El ciclo cada hora en GitHub Actions
 En GitHub: repositorio -> *Settings* -> *Secrets and variables* -> *Actions*.
 - **Secrets**: `DATABASE_URL`, `NASA_FIRMS_MAP_KEY`, `GEE_PROJECT`, `GEE_SERVICE_ACCOUNT` (el JSON completo), `SMTP_USER`, `SMTP_PASSWORD`, `ALERTA_DESTINATARIOS`.
 - **Variables**: `CICLO_ACTIVO` = `true`.
-Luego *Actions* -> *ingesta* -> **Run workflow** para probarlo. Despues corre solo cada 3 horas y deja de depender de tu laptop.
+Luego *Actions* -> *ingesta* -> **Run workflow** para probarlo. Despues corre solo cada hora y deja de depender de tu laptop.
 Apaga entonces el programador local (`docker compose --profile auto stop scheduler`) para no duplicar correos.
 
 ## Paso 6. Comprobacion final

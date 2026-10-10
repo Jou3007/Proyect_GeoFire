@@ -88,7 +88,7 @@ Pantalla "Reportes" (autoridad regional y administrador): filtra por periodo, ni
 con los mismos totales. Incluye fecha de generacion, periodo, fuentes, limitaciones y el area afectada estimada
 con dNBR (opcional, usa Earth Engine). El area externa (oficial) no se incorpora; el documento lo indica.
 
-## Ejecucion automatica cada 3 horas
+## Ejecucion automatica cada hora (en GitHub Actions; el programador local usa 3 h)
 
 Un ciclo = ingesta FIRMS -> evaluacion de riesgo -> correo (`python scripts/ciclo.py`, ~20 s). Si un paso falla se
 reintenta 2 veces y el ciclo continua; cada corrida queda en la tabla `ejecuciones`.
