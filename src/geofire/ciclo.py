@@ -39,7 +39,7 @@ def _pasos_por_defecto(horas_eval):
     from geofire.zonas import evaluar_si_toca
 
     return [
-        ("ingesta", lambda: ingest(days=1)),
+        ("ingesta", lambda: ingest(days=3))  # FIRMS cuenta dias UTC: 1 dia puede venir vacio; los repetidos se ignoran,
         ("evaluacion", lambda: procesar(horas_eval)),
         ("zonas", evaluar_si_toca),  # evaluacion preventiva por zona: una vez al dia
         ("correo", correo),

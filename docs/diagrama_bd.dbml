@@ -1,0 +1,178 @@
+// GeoFire-Peru: esquema final de la base de datos (PostgreSQL 16 + PostGIS). Pegar en https://dbdiagram.io/d
+Project geofire {
+  database_type: 'PostgreSQL'
+  Note: 'GeoFire-Peru - alerta temprana de incendios forestales en Ucayali'
+}
+
+Table zonas {
+  id serial [pk]
+  nombre text [not null]
+  tipo text [not null, default: 'distrito', note: 'region, provincia, distrito, geocerca, ANP']
+  geom geometry [not null, note: 'MultiPolygon, 4326']
+  padre_id int [ref: > zonas.id, note: 'provincia a la que pertenece el distrito']
+  codigo text
+  indexes {
+    (tipo, nombre, padre_id) [unique]
+  }
+}
+
+Table focos_calor {
+  id bigserial [pk]
+  fuente text [not null, note: 'VIIRS_SNPP_NRT, MODIS_NRT...']
+  fecha_hora timestamptz [not null]
+  frp double [note: 'potencia radiativa (MW)']
+  confianza text
+  geom geometry [not null, note: 'Point, 4326']
+  creado_en timestamptz [not null, default: `now()`]
+  indexes {
+    (fuente, fecha_hora, geom) [unique]
+    fecha_hora
+  }
+}
+
+Table lotes_imagenes {
+  id bigserial [pk]
+  creado_en timestamptz [not null, default: `now()`]
+  coleccion text [not null]
+  desde date
+  hasta date
+  imagenes "text[]" [not null, note: 'ids de imagenes Sentinel-2 usadas']
+}
+
+Table alertas {
+  id bigserial [pk]
+  foco_id bigint [unique, ref: > focos_calor.id]
+  nivel text [note: 'BAJO, MEDIO, ALTO, CRITICO; NULL = no evaluable']
+  ndvi double
+  ndwi double
+  nbr double
+  creada_en timestamptz [not null, default: `now()`]
+  notificada boolean [not null, default: false]
+  puntaje int
+  reglas "text[]"
+  estado text [not null, default: 'ACTIVA', note: 'ACTIVA, REVISION_HISTORICA']
+  en_anp boolean
+  evaluada_en timestamptz
+  fecha_corte timestamptz
+  config_version text
+  reevaluada_en timestamptz
+  lote_imagenes_id bigint [ref: > lotes_imagenes.id]
+  evaluable boolean [not null, default: true]
+  motivo text [note: 'SIN_IMAGENES, AGUA, COBERTURA_INSUFICIENTE']
+}
+
+Table usuarios {
+  id serial [pk]
+  email text [unique, not null]
+  password_hash text [not null, note: 'bcrypt']
+  rol text [not null, note: 'administrador, autoridad_regional, guardaparque']
+  intentos_fallidos int [not null, default: 0]
+  bloqueado boolean [not null, default: false]
+  nombre text
+  activo boolean [not null, default: true]
+  ultimo_acceso timestamptz
+  zona_id int [ref: > zonas.id, note: 'zona a la que se limita el guardaparque']
+}
+
+Table incidentes {
+  id bigserial [pk]
+  alerta_id bigint [not null, ref: > alertas.id]
+  estado text [not null, default: 'PENDIENTE', note: 'PENDIENTE, CONFIRMADA, FALSA_ALARMA']
+  comentario text
+  foto_url text
+  usuario_id int [ref: > usuarios.id]
+  validado_en timestamptz
+  referencia_evidencia text
+  foto_bytes bytea
+  foto_tipo text
+}
+
+Table notificaciones {
+  id bigserial [pk]
+  alerta_id bigint [not null, ref: > alertas.id]
+  enviada_en timestamptz [not null, default: `now()`]
+  canal text [not null, default: 'correo']
+  destinatarios "text[]"
+  resultado text [not null, note: 'ENVIADO, ERROR']
+  detalle text
+}
+
+Table evaluaciones_zona {
+  id bigserial [pk]
+  zona_id int [not null, ref: > zonas.id]
+  evaluada_en timestamptz [not null, default: `now()`]
+  fecha_corte timestamptz [not null]
+  config_version text [not null]
+  ventana_dias int [not null]
+  evaluable boolean [not null]
+  motivo text
+  nivel text [note: 'BAJO, MEDIO, ALTO, CRITICO']
+  ndvi_medio double
+  ndvi_historico double
+  pct_estres double
+  pct_cobertura double
+  focos_30d int
+  focos_por_100km2 double
+  area_km2 double
+  reglas "text[]"
+  lote_imagenes_id bigint [ref: > lotes_imagenes.id]
+  indexes {
+    (zona_id, evaluada_en)
+  }
+}
+
+Table asentamientos {
+  id bigint [pk, note: 'id OSM; 9e12+ = comunidades RAISG']
+  nombre text
+  tipo text [not null, note: 'city, town, village, hamlet, comunidad_nativa']
+  fuente text [not null, default: 'OpenStreetMap']
+  geom geometry [not null, note: 'Point, 4326']
+}
+
+Table fuentes_calor_conocidas {
+  id bigserial [pk]
+  nombre text
+  tipo text [not null, default: 'aserradero', note: 'aserradero, hidrocarburos, planta, otro']
+  fuente text [not null, note: 'OpenStreetMap, carga manual']
+  osm_id bigint [unique]
+  radio_m int [not null, default: 300]
+  creado_en timestamptz [not null, default: `now()`]
+  geom geometry [not null, note: 'Point, 4326']
+}
+
+Table ejecuciones {
+  id bigserial [pk]
+  inicio timestamptz [not null]
+  fin timestamptz [not null]
+  estado text [not null, note: 'OK, PARCIAL, ERROR']
+  duracion_s double
+  detalle jsonb
+}
+
+Table log_auditoria {
+  id bigserial [pk]
+  fecha timestamptz [not null, default: `now()`]
+  evento text [not null]
+  usuario_id int
+  email text
+  detalle jsonb
+  Note: 'Inmutable: un trigger impide UPDATE y DELETE (RNF-08)'
+}
+
+Table validaciones_mascara {
+  id bigserial [pk]
+  creada_en timestamptz [not null, default: `now()`]
+  umbral_ndwi double [not null]
+  ventana_dias int [not null]
+  fecha_corte date [not null]
+  referencia text [not null]
+  ocurrencia_agua_pct int [not null]
+  escala_m int [not null]
+  resultado jsonb [not null]
+}
+
+Table backtesting {
+  id bigserial [pk]
+  creado_en timestamptz [not null, default: `now()`]
+  resultado jsonb [not null]
+}
