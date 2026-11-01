@@ -37,6 +37,13 @@ def _conexion():
         " latitud REAL, longitud REAL, nota TEXT, marca_tiempo INTEGER NOT NULL,"
         " archivo TEXT, recibido_en TEXT NOT NULL)"
     )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS ubicaciones_campo ("
+        " id INTEGER PRIMARY KEY AUTOINCREMENT, correo TEXT NOT NULL,"
+        " latitud REAL NOT NULL, longitud REAL NOT NULL, marca_tiempo INTEGER NOT NULL,"
+        " recibido_en TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_ubicaciones_correo ON ubicaciones_campo (correo, marca_tiempo DESC)")
     return conn
 
 
@@ -94,6 +101,37 @@ def listar_reportes(limite: int = 100):
             (limite,),
         ).fetchall()
     columnas = ["id", "correo", "tipo", "latitud", "longitud", "nota", "marca_tiempo", "archivo", "recibido_en"]
+    return [dict(zip(columnas, fila)) for fila in filas]
+
+
+class UbicacionEntrada(BaseModel):
+    correo: str
+    latitud: float
+    longitud: float
+    marca_tiempo: int
+
+
+@app.post("/api/campo/ubicacion")
+def recibir_ubicacion(datos: UbicacionEntrada):
+    with _conexion() as conn:
+        conn.execute(
+            "INSERT INTO ubicaciones_campo (correo, latitud, longitud, marca_tiempo, recibido_en)"
+            " VALUES (?,?,?,?,?)",
+            (datos.correo, datos.latitud, datos.longitud, datos.marca_tiempo, datetime.now(timezone.utc).isoformat()),
+        )
+    return {"ok": True}
+
+
+@app.get("/api/campo/ubicaciones/ultimas")
+def ultimas_ubicaciones():
+    """Última posición conocida de cada guardaparque. Usado por el panel de la web (campo_vivo.py)."""
+    with _conexion() as conn:
+        filas = conn.execute(
+            "SELECT correo, latitud, longitud, marca_tiempo, recibido_en FROM ubicaciones_campo u"
+            " WHERE marca_tiempo = (SELECT max(marca_tiempo) FROM ubicaciones_campo WHERE correo = u.correo)"
+            " ORDER BY marca_tiempo DESC"
+        ).fetchall()
+    columnas = ["correo", "latitud", "longitud", "marca_tiempo", "recibido_en"]
     return [dict(zip(columnas, fila)) for fila in filas]
 
 

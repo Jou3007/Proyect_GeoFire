@@ -11,6 +11,8 @@ import retrofit2.http.Part
 data class LoginRequest(val correo: String, val clave: String)
 data class LoginResponse(val ok: Boolean, val nombre: String? = null, val rol: String? = null, val mensaje: String? = null)
 data class ReporteRespuesta(val ok: Boolean, val id: Long? = null)
+data class UbicacionRequest(val correo: String, val latitud: Double, val longitud: Double, val marca_tiempo: Long)
+data class UbicacionRespuesta(val ok: Boolean)
 
 interface GeoFireApiService {
 
@@ -32,4 +34,8 @@ interface GeoFireApiService {
         @Part("marca_tiempo") marcaTiempo: RequestBody,
         @Part archivo: MultipartBody.Part?,
     ): Response<ReporteRespuesta>
+
+    /** Un punto de la jornada (rastreo continuo, etapa 2). Sin archivo, solo coordenadas. */
+    @POST("api/campo/ubicacion")
+    suspend fun enviarUbicacion(@Body datos: UbicacionRequest): Response<UbicacionRespuesta>
 }

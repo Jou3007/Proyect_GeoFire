@@ -23,6 +23,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.geofire.campo.data.SesionRepositorio
 import com.geofire.campo.data.local.ReportDatabase
 import com.geofire.campo.data.models.ReportEntity
+import com.geofire.campo.services.LocationTrackingService
+import com.geofire.campo.services.intentarEnviarAhora
 import com.geofire.campo.ui.theme.*
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.launch
@@ -44,6 +46,7 @@ fun DashboardScreen(alVerHistorial: () -> Unit, alCerrarSesion: () -> Unit) {
     var grabandoAudio by remember { mutableStateOf(false) }
     var grabadorAudio by remember { mutableStateOf<MediaRecorder?>(null) }
     var rutaAudioActual by remember { mutableStateOf<String?>(null) }
+    var jornadaActiva by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         correo = SesionRepositorio.correoActual(contexto) ?: ""
@@ -65,6 +68,7 @@ fun DashboardScreen(alVerHistorial: () -> Unit, alCerrarSesion: () -> Unit) {
                     correoUsuario = correo,
                 ),
             )
+            intentarEnviarAhora(contexto) // lo manda ya mismo si hay señal; si no, el respaldo lo hace despues
             mensaje = "Guardado. Se enviará solo o cuando recuperes señal."
         }
     }
@@ -93,6 +97,28 @@ fun DashboardScreen(alVerHistorial: () -> Unit, alCerrarSesion: () -> Unit) {
     }
 
     val permisos = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
+    val permisoUbicacionFondo = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+    fun alternarJornada() {
+        if (!jornadaActiva) {
+            val tieneUbicacion = ContextCompat.checkSelfPermission(contexto, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            if (!tieneUbicacion) {
+                permisos.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.POST_NOTIFICATIONS))
+                mensaje = "Dale permiso de ubicación y pulsa de nuevo Iniciar jornada."
+                return
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                permisoUbicacionFondo.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            }
+            LocationTrackingService.iniciar(contexto, correo)
+            jornadaActiva = true
+            mensaje = "Jornada iniciada: tu ubicación se registra cada 2 minutos."
+        } else {
+            LocationTrackingService.detener(contexto)
+            jornadaActiva = false
+            mensaje = "Jornada detenida."
+        }
+    }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -119,6 +145,28 @@ fun DashboardScreen(alVerHistorial: () -> Unit, alCerrarSesion: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                     )
                 }
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Card(colors = CardDefaults.cardColors(containerColor = FondoTarjeta), modifier = Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.padding(16.dp).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Jornada de campo", color = TextoSuave, style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        if (jornadaActiva) "Rastreando tu ubicación" else "Rastreo apagado",
+                        color = if (jornadaActiva) VerdeGeoFire else TextoClaro,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Switch(
+                    checked = jornadaActiva,
+                    onCheckedChange = { alternarJornada() },
+                    colors = SwitchDefaults.colors(checkedTrackColor = VerdeGeoFire),
+                )
             }
         }
 

@@ -33,6 +33,7 @@ TODAS = {
     "geocercas": st.Page("views/geocercas.py", title="Geocercas", url_path="geocercas"),
     "usuarios": st.Page("views/usuarios.py", title="Usuarios", url_path="usuarios"),
     "auditoria": st.Page("views/auditoria.py", title="Auditoría", url_path="auditoria"),
+    "campo_vivo": st.Page("views/campo_vivo.py", title="Guardaparques en vivo", url_path="campo-vivo"),
 }
 if usuario["rol"] == "guardaparque":  # su pantalla principal es la validacion en campo
     TODAS["validacion"] = st.Page(

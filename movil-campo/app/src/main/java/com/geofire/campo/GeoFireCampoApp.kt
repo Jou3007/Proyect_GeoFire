@@ -16,7 +16,12 @@ class GeoFireCampoApp : Application() {
         programarSincronizacion()
     }
 
-    /** El SyncWorker solo se activa cuando Android avisa que ya hay internet. */
+    /**
+     * El SyncWorker corre cada 15 minutos como respaldo (es el minimo que permite
+     * Android para trabajo periodico). Para que un reporte no espere ese intervalo
+     * si ya hay señal en el momento, DashboardScreen dispara ademas un envio
+     * inmediato con intentarEnviarAhora() justo despues de guardar cada reporte.
+     */
     private fun programarSincronizacion() {
         val restricciones = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)

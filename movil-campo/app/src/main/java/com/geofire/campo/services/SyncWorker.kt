@@ -4,8 +4,11 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.geofire.campo.data.local.ReportDatabase
+import com.geofire.campo.data.local.UbicacionDao
 import com.geofire.campo.network.ConfigServidor
+import com.geofire.campo.network.GeoFireApiService
 import com.geofire.campo.network.RetrofitClient
+import com.geofire.campo.network.UbicacionRequest
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -21,12 +24,15 @@ class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
 
     override suspend fun doWork(): Result {
         val dao = ReportDatabase.obtener(applicationContext).reportDao()
+        val daoUbicacion = ReportDatabase.obtener(applicationContext).ubicacionDao()
         val urlBase = ConfigServidor.urlBaseActual(applicationContext)
         val servicio = RetrofitClient.servicio(urlBase)
-        val pendientes = dao.pendientes()
-        if (pendientes.isEmpty()) return Result.success()
 
-        var huboFallo = false
+        var huboFallo = enviarUbicacionesPendientes(daoUbicacion, servicio)
+
+        val pendientes = dao.pendientes()
+        if (pendientes.isEmpty() && !huboFallo) return Result.success()
+
         for (reporte in pendientes) {
             try {
                 val archivoPart = reporte.rutaArchivo?.let { ruta ->
@@ -65,5 +71,24 @@ class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
         }
         // si algo fallo, WorkManager reintenta mas tarde en cuanto vuelva a haber red
         return if (huboFallo) Result.retry() else Result.success()
+    }
+
+    private suspend fun enviarUbicacionesPendientes(dao: UbicacionDao, servicio: GeoFireApiService): Boolean {
+        var huboFallo = false
+        for (ubicacion in dao.pendientes()) {
+            try {
+                val respuesta = servicio.enviarUbicacion(
+                    UbicacionRequest(ubicacion.correoUsuario, ubicacion.latitud, ubicacion.longitud, ubicacion.marcaTiempo),
+                )
+                if (respuesta.isSuccessful) {
+                    dao.actualizar(ubicacion.copy(enviado = true))
+                } else {
+                    huboFallo = true
+                }
+            } catch (_: Exception) {
+                huboFallo = true
+            }
+        }
+        return huboFallo
     }
 }
