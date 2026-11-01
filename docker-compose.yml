@@ -43,6 +43,22 @@ services:
       - .:/app
       - gee_credentials:/root/.config/earthengine
 
+  # API de la app movil GeoFire Campo (foto, audio, video, GPS, SOS del guardaparque).
+  # El puerto 8080 es el que expone ngrok con "ngrok http 80 --url https://plank-retired-amuck.ngrok-free.dev".
+  campo_api:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+    command: uvicorn server_campo.main:app --host 0.0.0.0 --port 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
   # Opcional: repite el ciclo cada 3 h en tu PC. Se activa con: docker compose --profile auto up -d scheduler
   scheduler:
     build: .

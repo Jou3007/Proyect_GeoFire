@@ -1,0 +1,4 @@
+{
+  "url_base": "https://plank-retired-amuck.ngrok-free.dev/",
+  "_nota": "La app GeoFire Campo lee este archivo al iniciar sesion. Si el servidor cambia de direccion, edita solo este valor y sube el cambio a GitHub: las apps ya instaladas lo toman solas, sin recompilar."
+}
